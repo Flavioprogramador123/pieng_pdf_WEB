@@ -75,11 +75,10 @@ body {
 }
 
 .sidebar-logo {
-  height: 48px;
+  height: 40px;
   width: auto;
   max-width: 100%;
   object-fit: contain;
-  opacity: 0.92;
 }
 
 .top-actions {
@@ -338,9 +337,9 @@ button.secondary {
 }
 
 .empty-logo {
-  height: 72px;
+  height: 56px;
   width: auto;
-  opacity: 0.85;
+  max-width: 200px;
 }
 
 .empty p {

@@ -12,8 +12,8 @@ import {
 } from "./api.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
-const LOGO_HEADER = "/assets/logos/logo-pieng-oficial.png";
-const LOGO_MARK = "/assets/logos/logo-pieng.png";
+/** Logo oficial (preto) — mesmo arquivo em header, sidebar e tela central */
+const LOGO_PIENG = "/assets/logos/logo-pieng-oficial.png";
 
 function App() {
   const [docs, setDocs] = useState([]);
@@ -345,7 +345,7 @@ function App() {
     <div className={`app ${readingMode ? "reading" : ""}`}>
       <header className="topbar">
         <div className="brand">
-          <img src={LOGO_HEADER} alt="PIENG" className="brand-logo" />
+          <img src={LOGO_PIENG} alt="PIENG" className="brand-logo" />
           <div className="brand-text">
             <span className="brand-title">PDF Web</span>
             <span className="brand-sub">Manipulação de PDF no navegador</span>
@@ -364,7 +364,7 @@ function App() {
       <div className="layout">
         <aside className="sidebar">
           <div className="sidebar-brand">
-            <img src={LOGO_MARK} alt="" className="sidebar-logo" aria-hidden />
+            <img src={LOGO_PIENG} alt="PIENG" className="sidebar-logo" />
           </div>
           <label className="upload-zone">
             <input
@@ -442,7 +442,7 @@ function App() {
             <pre className="text-panel">{textOut || "Extraia o texto do PDF ativo."}</pre>
           ) : !active ? (
             <div className="empty">
-              <img src={LOGO_MARK} alt="PIENG" className="empty-logo" />
+              <img src={LOGO_PIENG} alt="PIENG" className="empty-logo" />
               <p>Envie um PDF para começar</p>
               <span className="empty-sub">Merge, split, rotação, DOCX e modo leitura</span>
             </div>
