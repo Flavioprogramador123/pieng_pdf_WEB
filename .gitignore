@@ -1,0 +1,13 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.local
+node_modules/
+frontend/node_modules/
+src/static/
+*.docx
+estrutura_da_pasta.json
+.DS_Store
+Thumbs.db

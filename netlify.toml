@@ -1,0 +1,16 @@
+# Build: raiz do repositório (conecte este repo no Netlify)
+[build]
+  command = "cd frontend && npm install && npm run build"
+  publish = "src/static"
+
+# Troque pela URL da API (Railway/Render) após o deploy do backend
+[[redirects]]
+  from = "/api/*"
+  to = "https://SUBSTITUA-SUA-API.up.railway.app/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
