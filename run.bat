@@ -7,16 +7,10 @@ if not exist venv\Scripts\activate.bat (
 ) else (
   call venv\Scripts\activate.bat
 )
-echo [PIENG] Build do frontend (index + assets sincronizados)...
-cd frontend
-if not exist node_modules (
+if not exist src\static\index.html (
+  cd frontend
   call npm install
+  call npm run build
+  cd ..
 )
-call npm run build
-if errorlevel 1 (
-  echo ERRO: build do frontend falhou.
-  exit /b 1
-)
-cd ..
-echo [PIENG] Abrindo http://localhost:5001
 python src\main.py

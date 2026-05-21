@@ -490,14 +490,7 @@ button.secondary {
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
-  min-height: 12rem;
-}
-
-.read-placeholder {
-  color: var(--muted);
-  font-size: 0.95rem;
-  margin: 2rem auto;
-  text-align: center;
+  min-height: 0;
 }
 
 /* Word: faixa estreita tipo página (~A4) */
@@ -533,16 +526,12 @@ button.secondary {
 }
 
 .read-office-sheet-scroll {
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
   background: #fff;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
   border-radius: 4px;
   transform-origin: top left;
-  will-change: transform;
-}
-
-.read-office--docx .read-office-inner {
-  will-change: transform;
 }
 
 .read-office-inner {
@@ -604,19 +593,11 @@ button.secondary {
   color: var(--muted);
 }
 
-/* PDF no modo leitura: tamanho real do canvas (zoom altera pixels, não só escala CSS) */
-.reading-scroll.reading-host--pdf {
-  align-items: flex-start;
-  overflow-x: auto;
-}
-
-.reading-host--pdf .read-page {
-  display: block;
-  max-width: none;
-  width: auto;
-  height: auto;
+.read-page {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
   background: #fff;
+  max-width: 900px;
+  width: 100%;
 }
 
 .text-tab {

@@ -36,7 +36,7 @@ import {
   renderSheetFromBytes,
 } from "./officeReader.js";
 import DefaultAppPrompt from "./DefaultAppPrompt.jsx";
-import ReadingToolbar, { READ_ZOOM_DEFAULT, nextZoom } from "./ReadingToolbar.jsx";
+import ReadingToolbar, { nextZoom } from "./ReadingToolbar.jsx";
 import { isInstalledPwa } from "./defaultApp.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
@@ -60,7 +60,7 @@ function App() {
   const [hideApiBanner, setHideApiBanner] = useState(
     () => sessionStorage.getItem("pieng-hide-api-banner") === "1"
   );
-  const [readZoom, setReadZoom] = useState(READ_ZOOM_DEFAULT);
+  const [readZoom, setReadZoom] = useState(1.4);
   const [readRotation, setReadRotation] = useState(0);
   const [readPageIdx, setReadPageIdx] = useState(0);
 
@@ -72,15 +72,7 @@ function App() {
   const officeStoreRef = useRef(new Map());
   const onUploadRef = useRef(null);
   const deferredInstallRef = useRef(null);
-  const readZoomRef = useRef(READ_ZOOM_DEFAULT);
-  const readRotationRef = useRef(0);
-  const zoomPaintTimerRef = useRef(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
-
-  readZoomRef.current = readZoom;
-  readRotationRef.current = readRotation;
-  const readingModeRef = useRef(readingMode);
-  readingModeRef.current = readingMode;
 
   const activeDoc = docs.find((d) => d.file_id === active);
   const isPdfDoc = !activeDoc?.kind || activeDoc.kind === DOC_KIND.PDF;
@@ -133,14 +125,6 @@ function App() {
     [docViewUrl]
   );
 
-  const ensurePdfLoaded = useCallback(async () => {
-    if (!active || !isPdfDoc) return null;
-    if (!pdfRef.current) {
-      await loadPdfDoc(active);
-    }
-    return pdfRef.current;
-  }, [active, isPdfDoc, loadPdfDoc]);
-
   const paintMain = useCallback(async () => {
     const pdf = pdfRef.current;
     const canvas = canvasRef.current;
@@ -161,80 +145,42 @@ function App() {
   }, [pages]);
 
   const paintReading = useCallback(async () => {
-    let host = readRef.current;
-    if (!host) {
-      await new Promise((r) => requestAnimationFrame(r));
-      host = readRef.current;
-    }
+    const host = readRef.current;
     if (!host || !activeDoc) return;
 
     if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
       const office = officeStoreRef.current.get(activeDoc.file_id);
       if (!office) return;
-      if (!host.querySelector(".read-office-inner")) {
-        mountOfficeHtml(host, office.previewHtml, activeDoc.kind);
-      }
-      applyOfficeTransform(host, {
-        zoom: readZoomRef.current,
-        rotation: readRotationRef.current,
-      });
+      mountOfficeHtml(host, office.previewHtml, activeDoc.kind);
+      applyOfficeTransform(host, { zoom: readZoom, rotation: readRotation });
       return;
     }
 
-    let pdf;
-    try {
-      pdf = await ensurePdfLoaded();
-    } catch (e) {
-      setError(e.message);
-      return;
-    }
-    if (!pdf) {
-      host.innerHTML = '<p class="read-placeholder">Selecione um PDF em Arquivos.</p>';
-      return;
-    }
-    host.classList.remove("reading-host--sheet", "reading-host--docx");
-    host.classList.add("reading-host--pdf");
-    host.innerHTML = "";
-
-    const idx = Math.min(Math.max(0, readPageIdx), pages.length - 1);
-    const slot = pages[idx];
-    const c = document.createElement("canvas");
-    c.className = "read-page";
-    c.dataset.pageIndex = String(idx);
-    host.appendChild(c);
-    const rot = ((slot.rotation || 0) + readRotationRef.current) % 360;
-    await renderPage(pdf, slot.page, c, rot, readZoomRef.current);
-  }, [pages, readPageIdx, activeDoc, active, ensurePdfLoaded]);
-
-  const refreshReadingPdfPage = useCallback(async () => {
-    const host = readRef.current;
-    if (!host || !pages.length || !activeDoc || activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
-      return;
-    }
-    let pdf;
-    try {
-      pdf = await ensurePdfLoaded();
-    } catch (e) {
-      setError(e.message);
-      return;
-    }
+    const pdf = pdfRef.current;
     if (!pdf) return;
-    const idx = Math.min(Math.max(0, readPageIdx), pages.length - 1);
-    const slot = pages[idx];
-    host.classList.add("reading-host--pdf");
     host.classList.remove("reading-host--sheet", "reading-host--docx");
-
-    let canvas = host.querySelector(".read-page");
-    if (!canvas || canvas.dataset.pageIndex !== String(idx)) {
-      host.innerHTML = "";
-      canvas = document.createElement("canvas");
-      canvas.className = "read-page";
-      canvas.dataset.pageIndex = String(idx);
-      host.appendChild(canvas);
+    host.innerHTML = "";
+    const canvases = [];
+    for (let i = 0; i < pages.length; i++) {
+      const c = document.createElement("canvas");
+      c.className = "read-page";
+      c.dataset.pageIndex = String(i);
+      host.appendChild(c);
+      canvases.push(c);
     }
-    const rot = ((slot.rotation || 0) + readRotationRef.current) % 360;
-    await renderPage(pdf, slot.page, canvas, rot, readZoomRef.current);
-  }, [pages, readPageIdx, activeDoc, ensurePdfLoaded]);
+    for (let i = 0; i < pages.length; i++) {
+      const rot = ((pages[i].rotation || 0) + readRotation) % 360;
+      await renderPage(pdf, pages[i].page, canvases[i], rot, readZoom);
+    }
+    requestAnimationFrame(() => scrollToReadPage(readPageIdx));
+  }, [pages, readZoom, readRotation, readPageIdx, activeDoc]);
+
+  const scrollToReadPage = (idx) => {
+    const host = readRef.current;
+    if (!host) return;
+    const el = host.querySelector(`[data-page-index="${idx}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const fitReadWidth = useCallback(async () => {
     const pdf = pdfRef.current;
@@ -296,6 +242,8 @@ function App() {
     pages,
     currentIdx,
     readingMode,
+    readZoom,
+    readRotation,
     readPageIdx,
     tab,
     isPdfDoc,
@@ -305,43 +253,12 @@ function App() {
     paintReading,
   ]);
 
-  useEffect(() => {
-    if (!readingModeRef.current || !active || !pages.length || tab !== "editor" || !activeDoc) {
-      return;
-    }
-
-    if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
-      const host = readRef.current;
-      if (host) {
-        applyOfficeTransform(host, { zoom: readZoom, rotation: readRotation });
-      }
-      return;
-    }
-
-    clearTimeout(zoomPaintTimerRef.current);
-    let cancelled = false;
-    zoomPaintTimerRef.current = setTimeout(() => {
-      (async () => {
-        if (cancelled) return;
-        await refreshReadingPdfPage();
-      })().catch((e) => {
-        if (!cancelled) setError(e.message);
-      });
-    }, 120);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(zoomPaintTimerRef.current);
-    };
-  }, [readZoom, readRotation, active, activeDoc, tab, refreshReadingPdfPage]);
-
   const changeOfficeSheet = async (sheetName) => {
     const office = officeStoreRef.current.get(active);
     if (!office?.bytes) return;
     office.activeSheet = sheetName;
     office.previewHtml = renderSheetFromBytes(office.bytes, sheetName);
     officeStoreRef.current.set(active, office);
-    if (readRef.current) readRef.current.innerHTML = "";
     await paintReading();
   };
 
@@ -351,15 +268,12 @@ function App() {
   };
 
   const openDoc = async (doc, pageList) => {
-    if (active !== doc.file_id) {
-      pdfRef.current = null;
-    }
+    pdfRef.current = null;
     setActive(doc.file_id);
     setPages(pageList || doc.pages || []);
     setCurrentIdx(0);
     setReadPageIdx(0);
     setReadRotation(0);
-    setReadZoom(READ_ZOOM_DEFAULT);
     setSelected(new Set());
     setError("");
     setTab("editor");
@@ -1036,14 +950,20 @@ function App() {
                 activeSheet={officeStoreRef.current.get(active)?.activeSheet}
                 onZoomIn={() => setReadZoom((z) => nextZoom(z, 1))}
                 onZoomOut={() => setReadZoom((z) => nextZoom(z, -1))}
-                onZoomReset={() => setReadZoom(READ_ZOOM_DEFAULT)}
+                onZoomReset={() => setReadZoom(1.4)}
                 onFitWidth={() => fitReadWidth().catch((e) => setError(e.message))}
                 onRotateLeft={() => setReadRotation((r) => (r - 90 + 360) % 360)}
                 onRotateRight={() => setReadRotation((r) => (r + 90) % 360)}
-                onPrevPage={() => setReadPageIdx((i) => Math.max(0, i - 1))}
-                onNextPage={() =>
-                  setReadPageIdx((i) => Math.min(pages.length - 1, i + 1))
-                }
+                onPrevPage={() => {
+                  const n = Math.max(0, readPageIdx - 1);
+                  setReadPageIdx(n);
+                  scrollToReadPage(n);
+                }}
+                onNextPage={() => {
+                  const n = Math.min(pages.length - 1, readPageIdx + 1);
+                  setReadPageIdx(n);
+                  scrollToReadPage(n);
+                }}
                 onSheetChange={(name) => changeOfficeSheet(name).catch((e) => setError(e.message))}
               />
               <div className="reading-scroll" ref={readRef} />

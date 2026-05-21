@@ -1,22 +1,5 @@
 # Evolução: leitor PDF / Word / Excel
 
-## v38 — Crash ao abrir (`Cannot access before initialization`)
-
-- `refreshReadingPdfPage` estava declarado **depois** do `useEffect` de zoom que o referencia (TDZ no render)
-
-## v37 — Tela preta no modo leitura (PDF)
-
-- Garante carregamento do PDF (`ensurePdfLoaded`) antes de pintar o canvas
-- Zoom não depende mais de `readingMode` obsoleto no efeito (usa `readingModeRef`)
-- `paintReading` espera o DOM do painel de leitura montar (`requestAnimationFrame`)
-- Placeholder quando não há PDF selecionado
-
-## v35 — Performance modo leitura PDF
-
-- PDF: renderiza **só a página atual** (não todas de uma vez após zoom)
-- Troca de arquivo: zoom volta ao padrão (100%) — abertura mais rápida
-- Zoom PDF com pequeno atraso (120 ms) para não travar ao clicar +/− várias vezes
-
 ## v31 — Leitor oficial (PWA)
 
 - Diálogo: tornar PIENG o leitor de PDF/Word/Excel
