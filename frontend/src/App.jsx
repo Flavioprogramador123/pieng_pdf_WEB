@@ -19,7 +19,7 @@ import {
   mergeBytesList,
   revokeStore,
 } from "./localPdf.js";
-import { BUILD_LABEL } from "./buildVersion.js";
+import { BUILD_LABEL, BUILD_TITLE } from "./buildVersion.js";
 import { downloadSimpleDocx, extractPageTexts } from "./docxExport.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
@@ -611,7 +611,7 @@ function App() {
               Salvar alterações
             </button>
           </div>
-          <span className="build-tag" title={`Build ${BUILD_LABEL} — incrementar BUILD_SEQ em frontend/src/buildVersion.js`}>
+          <span className="build-tag" title={BUILD_TITLE}>
             {BUILD_LABEL}
           </span>
         </div>
