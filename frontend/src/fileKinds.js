@@ -4,21 +4,40 @@ export const DOC_KIND = {
   XLS: "xls",
 };
 
+/** Word 97–2003 (.doc / application/msword) — não é o mesmo que .docx no navegador */
+export function isLegacyWordDoc(file) {
+  const name = (file?.name || "").toLowerCase();
+  if (name.endsWith(".docx")) return false;
+  if (name.endsWith(".doc")) return true;
+  const type = (file?.type || "").toLowerCase();
+  return type === "application/msword";
+}
+
 export function detectDocKind(file) {
   const name = (file?.name || "").toLowerCase();
-  if (file?.type === "application/pdf" || name.endsWith(".pdf")) return DOC_KIND.PDF;
+  const type = (file?.type || "").toLowerCase();
+
+  if (type === "application/pdf" || name.endsWith(".pdf")) return DOC_KIND.PDF;
+
   if (
     name.endsWith(".docx") ||
-    name.endsWith(".doc") ||
-    file?.type?.includes("wordprocessing")
+    type.includes("wordprocessingml") ||
+    type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   ) {
     return DOC_KIND.DOCX;
   }
+
+  if (name.endsWith(".doc") || type === "application/msword") {
+    return DOC_KIND.DOCX;
+  }
+
   if (
     name.endsWith(".xlsx") ||
     name.endsWith(".xls") ||
-    file?.type?.includes("spreadsheet") ||
-    file?.type?.includes("excel")
+    type.includes("spreadsheet") ||
+    type.includes("excel") ||
+    type === "application/vnd.ms-excel" ||
+    type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   ) {
     return DOC_KIND.XLS;
   }

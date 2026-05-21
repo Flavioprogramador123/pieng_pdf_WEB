@@ -1,5 +1,13 @@
 # Evolução: leitor PDF / Word / Excel
 
+Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
+
+## v33 — Upload Word (.doc vs .docx)
+
+- `.docx` e Excel: leitura no navegador (como v32)
+- `.doc` (Word antigo): mensagem clara — converter para `.docx` (Mammoth não lê binário `.doc`)
+- MIME `application/msword` / extensão vazia no telemóvel: deteção melhorada
+
 ## v31 — Leitor oficial (PWA)
 
 - Diálogo: tornar PIENG o leitor de PDF/Word/Excel
@@ -9,7 +17,7 @@
 ## O que foi adicionado (v28+)
 
 - **Modo leitura** com barra de ferramentas: zoom +/−, 100%, largura (PDF), girar ↺↻, páginas ‹›
-- **Upload** de `.pdf`, `.docx`, `.doc`, `.xls`, `.xlsx` (Word/Excel só no navegador, sem API)
+- **Upload** de `.pdf`, `.docx`, `.xls`, `.xlsx` (Word/Excel só no navegador; `.doc` → converter para `.docx`)
 - Leitor **DOCX** (mammoth → HTML) e **planilha** (SheetJS → tabela HTML)
 
 ## O que NÃO mudou (v27 preservado)

@@ -1,11 +1,18 @@
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
-import { DOC_KIND, detectDocKind } from "./fileKinds.js";
+import { DOC_KIND, detectDocKind, isLegacyWordDoc } from "./fileKinds.js";
+
+const LEGACY_DOC_MSG =
+  "Arquivo .doc (Word antigo) não abre no navegador. No Word ou LibreOffice: Ficheiro → Guardar como → .docx e envie de novo.";
 
 export async function loadOfficeDocument(file) {
   const kind = detectDocKind(file);
   if (kind !== DOC_KIND.DOCX && kind !== DOC_KIND.XLS) {
     throw new Error("Formato de documento não suportado.");
+  }
+
+  if (kind === DOC_KIND.DOCX && isLegacyWordDoc(file)) {
+    throw new Error(LEGACY_DOC_MSG);
   }
 
   const bytes = await file.arrayBuffer();
@@ -18,9 +25,10 @@ export async function loadOfficeDocument(file) {
       const { value } = await mammoth.convertToHtml({ arrayBuffer: bytes });
       previewHtml = value || "<p>(documento vazio)</p>";
     } catch (e) {
-      throw new Error(
-        "Não foi possível abrir este Word. Use .docx ou converta .doc para .docx."
-      );
+      const hint = isLegacyWordDoc(file)
+        ? LEGACY_DOC_MSG
+        : "Não foi possível abrir este Word. Confirme que o ficheiro é .docx (não .doc).";
+      throw new Error(hint);
     }
   } else {
     const wb = XLSX.read(bytes, { type: "array" });

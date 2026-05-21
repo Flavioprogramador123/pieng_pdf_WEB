@@ -24,6 +24,7 @@ import {
   DOC_KIND,
   acceptUploadTypes,
   detectDocKind,
+  isLegacyWordDoc,
   isSupportedFile,
 } from "./fileKinds.js";
 import { FEATURES } from "./features/featureFlags.js";
@@ -342,7 +343,7 @@ function App() {
     if (!files.length) {
       setError(
         FEATURES.officeReader
-          ? "Selecione PDF, Word (.docx/.doc) ou Excel (.xls/.xlsx)."
+          ? "Selecione PDF, Word (.docx) ou Excel (.xls/.xlsx). Ficheiros .doc antigos: converta para .docx."
           : "Selecione um arquivo .pdf (no celular o tipo pode vir vazio — use arquivo .pdf)."
       );
       setLoading(false);
@@ -350,9 +351,16 @@ function App() {
     }
     const apiOk = apiOnline === true ? true : await checkApiHealth();
     setApiOnline(apiOk);
+    const uploadErrors = [];
     try {
       for (const file of files) {
         let doc = null;
+        if (FEATURES.officeReader && isLegacyWordDoc(file)) {
+          uploadErrors.push(
+            `${file.name || "Word"}: .doc não suportado — guarde como .docx e envie de novo.`
+          );
+          continue;
+        }
         if (apiOk && detectDocKind(file) === DOC_KIND.PDF) {
           try {
             const res = await uploadPdf(file);
@@ -384,6 +392,9 @@ function App() {
         }
         setDocs((d) => [...d, doc]);
         await openDoc(doc, doc.pages);
+      }
+      if (uploadErrors.length) {
+        setError(uploadErrors.join(" "));
       }
     } catch (e) {
       setError(e.message || "Falha ao abrir o PDF");
