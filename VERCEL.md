@@ -30,6 +30,15 @@ Clique em **Deploy** ou expanda **Build and Output Settings** e confira:
 
 O arquivo **`vercel.json`** na raiz aplica isso automaticamente. Se o Vercel sugerir **Flask**, mude para **Other** — senão o site React pode não buildar.
 
+### Variáveis de ambiente
+
+**Não adicione nenhuma.** Deixe a seção **Environment Variables** vazia.
+
+| Variável | Usar? |
+|----------|--------|
+| `VITE_API_URL` | **Não** — a Vercel não aceita valor vazio e não é necessária (API em `/api/pdf` no mesmo site) |
+| `EXAMPLE_NAME` | Apague se existir |
+
 4. Aguarde o **Deploy**
 
 URL exemplo: `https://pieng-pdf-web.vercel.app`

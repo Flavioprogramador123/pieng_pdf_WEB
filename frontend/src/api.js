@@ -1,4 +1,7 @@
-/** Em produção: defina VITE_API_URL no Netlify ou use proxy /api no netlify.toml */
+/**
+ * Vercel: não defina VITE_API_URL (usa /api/pdf no mesmo domínio).
+ * Só use VITE_API_URL se a API estiver em outro host, ex.: https://api.seudominio.com
+ */
 function apiRoot() {
   const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
   return base ? `${base}/api/pdf` : "/api/pdf";
