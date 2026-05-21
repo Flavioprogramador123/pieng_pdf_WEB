@@ -9,17 +9,28 @@ Não é necessário Railway, Netlify nem Render para produção.
 ## 1. Conectar o repositório
 
 1. [vercel.com](https://vercel.com) → **Add New** → **Project**
-2. Importe **`Flavioprogramador123/pieng_pdf_WEB`**
-3. O Vercel lê **`vercel.json`** automaticamente
+2. Importe **`Flavioprogramador123/pieng_pdf_WEB`** · branch **`main`**
+
+### Tela “New Project” (preencha assim)
 
 | Campo | Valor |
 |--------|--------|
-| Framework | Other |
-| Build Command | `cd frontend && npm install && npm run build` |
-| Output Directory | `src/static` |
-| Install Command | `pip install -r requirements.txt` |
+| **Vercel Team** | Pieng's projects (Hobby) |
+| **Project Name** | `pieng-pdf-web` |
+| **Application Preset** | **Other** (não use só “Flask”) |
+| **Root Directory** | `./` |
 
-4. **Deploy**
+Clique em **Deploy** ou expanda **Build and Output Settings** e confira:
+
+| Campo | Valor |
+|--------|--------|
+| **Build Command** | `cd frontend && npm install && npm run build` |
+| **Output Directory** | `src/static` |
+| **Install Command** | `pip install -r requirements.txt` |
+
+O arquivo **`vercel.json`** na raiz aplica isso automaticamente. Se o Vercel sugerir **Flask**, mude para **Other** — senão o site React pode não buildar.
+
+4. Aguarde o **Deploy**
 
 URL exemplo: `https://pieng-pdf-web.vercel.app`
 
