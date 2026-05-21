@@ -151,13 +151,14 @@ function App() {
     if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
       const office = officeStoreRef.current.get(activeDoc.file_id);
       if (!office) return;
-      mountOfficeHtml(host, office.previewHtml);
+      mountOfficeHtml(host, office.previewHtml, activeDoc.kind);
       applyOfficeTransform(host, { zoom: readZoom, rotation: readRotation });
       return;
     }
 
     const pdf = pdfRef.current;
     if (!pdf) return;
+    host.classList.remove("reading-host--sheet", "reading-host--docx");
     host.innerHTML = "";
     const canvases = [];
     for (let i = 0; i < pages.length; i++) {

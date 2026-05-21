@@ -60,20 +60,39 @@ export function renderSheetFromBytes(bytes, sheetName) {
 
 export function applyOfficeTransform(hostEl, { zoom, rotation }) {
   if (!hostEl) return;
-  const inner = hostEl.querySelector(".read-office-inner");
-  if (inner) {
-    inner.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
+  const target =
+    hostEl.querySelector(".read-office-sheet-scroll") ||
+    hostEl.querySelector(".read-office-inner");
+  if (target) {
+    target.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
+    target.style.transformOrigin = "top left";
   }
 }
 
-export function mountOfficeHtml(host, html) {
+export function mountOfficeHtml(host, html, kind) {
   host.innerHTML = "";
+  host.classList.toggle("reading-host--sheet", kind === DOC_KIND.XLS);
+  host.classList.remove("reading-host--docx");
+
+  const isSheet = kind === DOC_KIND.XLS;
+  if (!isSheet) host.classList.add("reading-host--docx");
+
   const wrap = document.createElement("div");
-  wrap.className = "read-office";
+  wrap.className = `read-office${isSheet ? " read-office--sheet" : " read-office--docx"}`;
+
   const inner = document.createElement("div");
   inner.className = "read-office-inner";
   inner.innerHTML = html;
-  wrap.appendChild(inner);
+
+  if (isSheet) {
+    const scroller = document.createElement("div");
+    scroller.className = "read-office-sheet-scroll";
+    scroller.appendChild(inner);
+    wrap.appendChild(scroller);
+  } else {
+    wrap.appendChild(inner);
+  }
+
   host.appendChild(wrap);
   return inner;
 }

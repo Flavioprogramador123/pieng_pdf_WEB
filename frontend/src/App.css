@@ -493,32 +493,86 @@ button.secondary {
   min-height: 0;
 }
 
-.read-office {
+/* Word: faixa estreita tipo página (~A4) */
+.reading-host--docx,
+.reading-scroll:not(.reading-host--sheet) .read-office--docx {
+  align-items: center;
+}
+
+.read-office--docx {
   width: 100%;
   max-width: 900px;
   display: flex;
   justify-content: center;
 }
 
-.read-office-inner {
+.read-office--docx .read-office-inner {
   transform-origin: top center;
+  max-width: 100%;
+}
+
+/* Excel: fundo branco acompanha toda a largura da tabela */
+.reading-scroll.reading-host--sheet {
+  align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.read-office--sheet {
+  width: max-content;
+  max-width: none;
+  min-width: min(100%, max-content);
+  display: block;
+}
+
+.read-office-sheet-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
+  transform-origin: top left;
+}
+
+.read-office-inner {
   background: #fff;
   color: #111;
   padding: 1.5rem 2rem;
+}
+
+.read-office--docx .read-office-inner {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
   border-radius: 4px;
-  max-width: 100%;
+}
+
+.read-office--sheet .read-office-inner {
+  box-shadow: none;
+  border-radius: 0;
+  width: max-content;
+  min-width: 100%;
 }
 
 .read-office-inner table {
   border-collapse: collapse;
   font-size: 0.85rem;
+  background: #fff;
+}
+
+.read-office--sheet .read-office-inner table {
+  width: max-content;
+  min-width: 100%;
 }
 
 .read-office-inner td,
 .read-office-inner th {
   border: 1px solid #ccc;
   padding: 0.35rem 0.5rem;
+  background: #fff;
+}
+
+.read-office--sheet .read-office-inner td,
+.read-office--sheet .read-office-inner th {
+  white-space: nowrap;
 }
 
 .read-office-inner .sheet-title {
