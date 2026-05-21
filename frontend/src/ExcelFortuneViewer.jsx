@@ -74,6 +74,9 @@ export default function ExcelFortuneViewer({
     return null;
   }
 
+  const devicePixelRatio =
+    typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+
   return (
     <div className="excel-fortune-viewport" ref={viewportRef}>
       <Workbook
@@ -83,6 +86,9 @@ export default function ExcelFortuneViewer({
         showToolbar={false}
         showFormulaBar={false}
         showSheetTabs={sheets.length > 1}
+        defaultFontSize={11}
+        defaultRowHeight={23}
+        devicePixelRatio={devicePixelRatio}
       />
     </div>
   );

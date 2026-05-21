@@ -2,6 +2,11 @@
 
 Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
 
+## v39 — Ajuste fino Excel (Fortune Sheet)
+
+- Linhas/colunas com ~14% margem após import (evita texto cortado em células mescladas)
+- `devicePixelRatio` nativo; modo leitura sem destaque de seleção
+
 ## v38 — Excel com Fortune Sheet (modo leitura)
 
 - `.xlsx` / `.xls` com **Fortune Sheet** + importador com estilos (substitui tabela HTML)

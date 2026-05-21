@@ -630,6 +630,27 @@ button.secondary {
   min-height: 320px;
 }
 
+/* Leitura: menos corte de texto no canvas e sem destaque de edição */
+.excel-fortune-viewport .luckysheet-cell-sheettable {
+  line-height: 1.3;
+}
+
+.excel-fortune-viewport .luckysheet-cell-flow-col {
+  overflow: visible;
+}
+
+.excel-fortune-viewport .luckysheet-cell-selected,
+.excel-fortune-viewport .luckysheet-cell-selected-focus,
+.excel-fortune-viewport .fortune-cell-selected-extend {
+  display: none !important;
+  pointer-events: none;
+}
+
+.excel-fortune-viewport #luckysheet-bottom-add-row,
+.excel-fortune-viewport .luckysheet-bottom-controll-row {
+  display: none !important;
+}
+
 .office-hint {
   flex: 1;
   display: flex;
