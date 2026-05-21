@@ -38,9 +38,13 @@ https://SUA-URL.up.railway.app/api/pdf/health
 
 Deve aparecer: `{"ok":true,"service":"pieng-pdf-api"}`
 
-### 5. Conectar ao Netlify
+### 5. Conectar ao site (Netlify **ou** Vercel)
 
-Edite **`netlify.toml`** na raiz do repo (linha do redirect):
+**Netlify** — edite **`netlify.toml`** (redirect):
+
+**Vercel** — edite **`vercel.json`** (rewrite) — guia: **[VERCEL.md](./VERCEL.md)**
+
+Exemplo Netlify — edite **`netlify.toml`** na raiz do repo (linha do redirect):
 
 ```toml
 [[redirects]]

@@ -6,7 +6,9 @@ Editor e leitor de PDF no navegador — versão web do **PIENG PDF Studio**.
 
 **API offline no Netlify?** Siga **[RAILWAY.md](./RAILWAY.md)** (5 minutos).
 
-**Publicar online:** veja **[DEPLOY.md](./DEPLOY.md)** (GitHub + Netlify + API).
+**Prefere Vercel em vez de Netlify?** **[VERCEL.md](./VERCEL.md)** (mesma API no Railway).
+
+**Publicar online:** veja **[DEPLOY.md](./DEPLOY.md)** (GitHub + Netlify/Vercel + API).
 ## Funcionalidades
 
 - Abrir em qualquer navegador (Chrome, Edge, Firefox)

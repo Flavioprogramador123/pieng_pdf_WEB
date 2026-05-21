@@ -29,6 +29,7 @@ Versão desktop de referência: **`E:\Projetos\pieng-pdf-studio`** (PyQt, v6.2.x
 | **Repositório GitHub** | https://github.com/Flavioprogramador123/pieng_pdf_WEB |
 | **Clone** | `https://github.com/Flavioprogramador123/pieng_pdf_WEB.git` |
 | **Site Netlify** | https://pieng-pdf-web.netlify.app |
+| **Site Vercel (alternativa)** | Importar repo — ver [VERCEL.md](./VERCEL.md) |
 | **Time Netlify** | pieng |
 | **Branch de deploy** | `main` |
 | **Projeto Studio (código-fonte lógica)** | `E:\Projetos\pieng-pdf-studio` |
