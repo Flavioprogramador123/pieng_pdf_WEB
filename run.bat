@@ -7,6 +7,7 @@ if not exist venv\Scripts\activate.bat (
 ) else (
   call venv\Scripts\activate.bat
 )
+pip install -r requirements-local.txt -q 2>nul
 if not exist src\static\index.html (
   cd frontend
   call npm install

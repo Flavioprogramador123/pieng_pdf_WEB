@@ -2,6 +2,12 @@
 
 Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
 
+## v36 — Conversão .doc no Windows
+
+- Procura LibreOffice em `C:\Program Files\LibreOffice\...`
+- Fallback **Word via PowerShell** (sem pywin32) se o Word estiver instalado
+- `run.bat` reinstala dependências locais (`pywin32`)
+
 ## v35 — Abrir .doc (Word antigo)
 
 - Upload `.doc` tenta conversão na API (`/convert-legacy-doc`) com LibreOffice ou Word (Windows)
