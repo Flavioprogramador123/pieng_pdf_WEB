@@ -399,6 +399,66 @@ button.secondary {
   color: var(--muted);
 }
 
+.reading-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.reading-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.reading-toolbar-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reading-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.reading-toolbar button {
+  min-width: 2rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.95rem;
+}
+
+.reading-zoom-pct,
+.reading-page-num {
+  font-size: 0.72rem;
+  color: var(--muted);
+  min-width: 2.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.reading-sheet-select {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  max-width: 120px;
+}
+
 .reading-scroll {
   flex: 1;
   overflow-y: auto;
@@ -407,6 +467,53 @@ button.secondary {
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+  min-height: 0;
+}
+
+.read-office {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  justify-content: center;
+}
+
+.read-office-inner {
+  transform-origin: top center;
+  background: #fff;
+  color: #111;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
+  max-width: 100%;
+}
+
+.read-office-inner table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.read-office-inner td,
+.read-office-inner th {
+  border: 1px solid #ccc;
+  padding: 0.35rem 0.5rem;
+}
+
+.read-office-inner .sheet-title {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+
+.office-hint {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted);
 }
 
 .read-page {
