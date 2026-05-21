@@ -72,7 +72,13 @@ function App() {
   const officeStoreRef = useRef(new Map());
   const onUploadRef = useRef(null);
   const deferredInstallRef = useRef(null);
+  const readZoomRef = useRef(READ_ZOOM_DEFAULT);
+  const readRotationRef = useRef(0);
+  const zoomPaintTimerRef = useRef(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
+  readZoomRef.current = readZoom;
+  readRotationRef.current = readRotation;
 
   const activeDoc = docs.find((d) => d.file_id === active);
   const isPdfDoc = !activeDoc?.kind || activeDoc.kind === DOC_KIND.PDF;
@@ -154,7 +160,10 @@ function App() {
       if (!host.querySelector(".read-office-inner")) {
         mountOfficeHtml(host, office.previewHtml, activeDoc.kind);
       }
-      applyOfficeTransform(host, { zoom: readZoom, rotation: readRotation });
+      applyOfficeTransform(host, {
+        zoom: readZoomRef.current,
+        rotation: readRotationRef.current,
+      });
       return;
     }
 
@@ -163,27 +172,16 @@ function App() {
     host.classList.remove("reading-host--sheet", "reading-host--docx");
     host.classList.add("reading-host--pdf");
     host.innerHTML = "";
-    const canvases = [];
-    for (let i = 0; i < pages.length; i++) {
-      const c = document.createElement("canvas");
-      c.className = "read-page";
-      c.dataset.pageIndex = String(i);
-      host.appendChild(c);
-      canvases.push(c);
-    }
-    for (let i = 0; i < pages.length; i++) {
-      const rot = ((pages[i].rotation || 0) + readRotation) % 360;
-      await renderPage(pdf, pages[i].page, canvases[i], rot, readZoom);
-    }
-    requestAnimationFrame(() => scrollToReadPage(readPageIdx));
-  }, [pages, readZoom, readRotation, readPageIdx, activeDoc]);
 
-  const scrollToReadPage = (idx) => {
-    const host = readRef.current;
-    if (!host) return;
-    const el = host.querySelector(`[data-page-index="${idx}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+    const idx = Math.min(Math.max(0, readPageIdx), pages.length - 1);
+    const slot = pages[idx];
+    const c = document.createElement("canvas");
+    c.className = "read-page";
+    c.dataset.pageIndex = String(idx);
+    host.appendChild(c);
+    const rot = ((slot.rotation || 0) + readRotationRef.current) % 360;
+    await renderPage(pdf, slot.page, c, rot, readZoomRef.current);
+  }, [pages, readPageIdx, activeDoc, active]);
 
   const fitReadWidth = useCallback(async () => {
     const pdf = pdfRef.current;
@@ -258,41 +256,22 @@ function App() {
     if (!readingMode || !active || !pages.length || tab !== "editor" || !activeDoc) {
       return;
     }
-    let cancelled = false;
-    (async () => {
+
+    if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
       const host = readRef.current;
-      if (!host) return;
-
-      if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
+      if (host) {
         applyOfficeTransform(host, { zoom: readZoom, rotation: readRotation });
-        return;
       }
+      return;
+    }
 
-      host.classList.add("reading-host--pdf");
-      host.classList.remove("reading-host--sheet", "reading-host--docx");
+    clearTimeout(zoomPaintTimerRef.current);
+    zoomPaintTimerRef.current = setTimeout(() => {
+      refreshReadingPdfPage().catch((e) => setError(e.message));
+    }, 120);
 
-      if (!pdfRef.current) {
-        await loadPdfDoc(active);
-        if (cancelled) return;
-        await paintReading();
-        return;
-      }
-
-      const canvases = host.querySelectorAll(".read-page");
-      if (canvases.length !== pages.length) {
-        await paintReading();
-        return;
-      }
-
-      for (let i = 0; i < pages.length; i++) {
-        const rot = ((pages[i].rotation || 0) + readRotation) % 360;
-        await renderPage(pdfRef.current, pages[i].page, canvases[i], rot, readZoom);
-      }
-    })().catch((e) => {
-      if (!cancelled) setError(e.message);
-    });
     return () => {
-      cancelled = true;
+      if (zoomPaintTimerRef.current) clearTimeout(zoomPaintTimerRef.current);
     };
   }, [
     readZoom,
@@ -300,10 +279,8 @@ function App() {
     readingMode,
     active,
     activeDoc,
-    pages,
     tab,
-    loadPdfDoc,
-    paintReading,
+    refreshReadingPdfPage,
   ]);
 
   const changeOfficeSheet = async (sheetName) => {
@@ -322,12 +299,15 @@ function App() {
   };
 
   const openDoc = async (doc, pageList) => {
-    pdfRef.current = null;
+    if (active !== doc.file_id) {
+      pdfRef.current = null;
+    }
     setActive(doc.file_id);
     setPages(pageList || doc.pages || []);
     setCurrentIdx(0);
     setReadPageIdx(0);
     setReadRotation(0);
+    setReadZoom(READ_ZOOM_DEFAULT);
     setSelected(new Set());
     setError("");
     setTab("editor");
@@ -335,6 +315,29 @@ function App() {
       setReadingMode(true);
     }
   };
+
+  const refreshReadingPdfPage = useCallback(async () => {
+    const host = readRef.current;
+    const pdf = pdfRef.current;
+    if (!host || !pdf || !pages.length || !activeDoc || activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
+      return;
+    }
+    const idx = Math.min(Math.max(0, readPageIdx), pages.length - 1);
+    const slot = pages[idx];
+    host.classList.add("reading-host--pdf");
+    host.classList.remove("reading-host--sheet", "reading-host--docx");
+
+    let canvas = host.querySelector(".read-page");
+    if (!canvas || canvas.dataset.pageIndex !== String(idx)) {
+      host.innerHTML = "";
+      canvas = document.createElement("canvas");
+      canvas.className = "read-page";
+      canvas.dataset.pageIndex = String(idx);
+      host.appendChild(canvas);
+    }
+    const rot = ((slot.rotation || 0) + readRotationRef.current) % 360;
+    await renderPage(pdf, slot.page, canvas, rot, readZoomRef.current);
+  }, [pages, readPageIdx, activeDoc]);
 
   const removeDoc = (fileId, e) => {
     e?.preventDefault?.();
@@ -1008,16 +1011,10 @@ function App() {
                 onFitWidth={() => fitReadWidth().catch((e) => setError(e.message))}
                 onRotateLeft={() => setReadRotation((r) => (r - 90 + 360) % 360)}
                 onRotateRight={() => setReadRotation((r) => (r + 90) % 360)}
-                onPrevPage={() => {
-                  const n = Math.max(0, readPageIdx - 1);
-                  setReadPageIdx(n);
-                  scrollToReadPage(n);
-                }}
-                onNextPage={() => {
-                  const n = Math.min(pages.length - 1, readPageIdx + 1);
-                  setReadPageIdx(n);
-                  scrollToReadPage(n);
-                }}
+                onPrevPage={() => setReadPageIdx((i) => Math.max(0, i - 1))}
+                onNextPage={() =>
+                  setReadPageIdx((i) => Math.min(pages.length - 1, i + 1))
+                }
                 onSheetChange={(name) => changeOfficeSheet(name).catch((e) => setError(e.message))}
               />
               <div className="reading-scroll" ref={readRef} />

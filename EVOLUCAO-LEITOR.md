@@ -1,5 +1,11 @@
 # Evolução: leitor PDF / Word / Excel
 
+## v35 — Performance modo leitura PDF
+
+- PDF: renderiza **só a página atual** (não todas de uma vez após zoom)
+- Troca de arquivo: zoom volta ao padrão (100%) — abertura mais rápida
+- Zoom PDF com pequeno atraso (120 ms) para não travar ao clicar +/− várias vezes
+
 ## v31 — Leitor oficial (PWA)
 
 - Diálogo: tornar PIENG o leitor de PDF/Word/Excel
