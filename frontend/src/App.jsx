@@ -602,7 +602,7 @@ function App() {
               Salvar alterações
             </button>
           </div>
-          <span className="build-tag" title={`Build ${BUILD_LABEL}`}>
+          <span className="build-tag" title={`Build ${BUILD_LABEL} — incrementar BUILD_SEQ em frontend/src/buildVersion.js`}>
             {BUILD_LABEL}
           </span>
         </div>
