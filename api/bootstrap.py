@@ -13,9 +13,9 @@ from flask import Flask
 from flask_cors import CORS
 from routes.pdf import pdf_bp
 
-# Vercel: função em api/pdf/[...path].py → Flask vê /health, /upload, …
+# Vercel: index.py em /api + routes → Flask vê /pdf/health → URL /api/pdf/health
 # Local: run.bat → /api/pdf/health
-_api_prefix = "" if os.environ.get("VERCEL") else "/api/pdf"
+_api_prefix = "/pdf" if os.environ.get("VERCEL") else "/api/pdf"
 
 application = Flask(__name__)
 application.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
