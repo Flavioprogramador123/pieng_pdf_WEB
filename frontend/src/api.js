@@ -135,10 +135,27 @@ export async function downloadDocx(fileId, filename) {
     throw new Error(await parseErrorResponse(res));
   }
   const blob = await res.blob();
+  triggerDownload(blob, filename.replace(/\.pdf$/i, ".docx"));
+}
+
+/** Conversão completa PDF→DOCX em uma requisição (preserva tabelas/logos no servidor). */
+export async function convertPdfFileToDocx(file) {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API}/convert-docx`, { method: "POST", body: fd });
+  if (!res.ok) {
+    throw new Error(await parseErrorResponse(res));
+  }
+  const blob = await res.blob();
+  const name = (file.name || "documento.pdf").replace(/\.pdf$/i, ".docx");
+  triggerDownload(blob, name);
+}
+
+function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename.replace(/\.pdf$/i, ".docx");
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }

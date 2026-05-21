@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   applyPages,
   checkApiHealth,
+  convertPdfFileToDocx,
   downloadDocx,
   downloadUrl,
   extractText,
@@ -444,6 +445,18 @@ function App() {
     }
   };
 
+  const pagesUnchanged = (list) =>
+    list.every((p, i) => p.page === i + 1 && !(p.rotation || 0));
+
+  const pdfBytesForDocx = async () => {
+    const store = localStoreRef.current.get(active);
+    if (!store) return null;
+    if (store.originalBytes && pagesUnchanged(pages)) {
+      return store.originalBytes;
+    }
+    return buildPdfBytes(store.bytes, pages);
+  };
+
   const doExportDocx = async () => {
     if (!active || !activeDoc || !pages.length) return;
     setLoading(true);
@@ -452,33 +465,50 @@ function App() {
       const apiOk = apiOnline === true ? true : await checkApiHealth();
       setApiOnline(apiOk);
 
-      if (activeDoc.source === "api" && apiOk) {
-        await downloadDocx(active, activeDoc.filename);
-        setHint("DOCX gerado no servidor (melhor fidelidade ao PDF).");
+      if (!apiOk) {
+        setError(
+          "DOCX com tabelas e logos exige a API no servidor. No PC: execute run.bat e abra http://localhost:5001. Na nuvem: configure Railway (RAILWAY.md). O site Netlify sozinho não converte layout."
+        );
         return;
       }
 
-      if (apiOk) {
-        const store = localStoreRef.current.get(active);
-        if (store) {
-          const bytes = await buildPdfBytes(store.bytes, pages);
-          const fn = activeDoc.filename || "documento.pdf";
-          const file = new File([bytes], fn, { type: "application/pdf" });
-          const up = await uploadPdf(file);
-          await downloadDocx(up.file_id, fn);
-          setHint("DOCX gerado pela API a partir do PDF editado.");
-          return;
-        }
+      if (activeDoc.source === "api") {
+        await downloadDocx(active, activeDoc.filename);
+        setHint("DOCX completo — tabelas, logos e layout preservados.");
+        return;
       }
 
+      const store = localStoreRef.current.get(active);
+      if (store) {
+        const bytes = await pdfBytesForDocx();
+        const fn = activeDoc.filename || "documento.pdf";
+        const file = new File([bytes], fn, { type: "application/pdf" });
+        await convertPdfFileToDocx(file);
+        setHint("DOCX completo — tabelas, logos e layout preservados.");
+        return;
+      }
+
+      throw new Error("Arquivo não encontrado para conversão.");
+    } catch (e) {
+      setError(e.message || "Falha ao gerar DOCX");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const doExportDocxTextOnly = async () => {
+    if (!active || !pages.length) return;
+    setLoading(true);
+    setError("");
+    try {
       if (!pdfRef.current) await loadPdfDoc(active);
       const sections = await extractPageTexts(pdfRef.current, pages);
       const name = await downloadSimpleDocx(activeDoc.filename, sections);
       setHint(
-        `Arquivo ${name} criado (texto). Para DOCX com layout do PDF, use API Railway ou run.bat no PC.`
+        `${name} — apenas texto, sem tabelas/logos. Para DOCX igual ao PDF use → DOCX com API (run.bat ou Railway).`
       );
     } catch (e) {
-      setError(e.message || "Falha ao gerar DOCX");
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -674,8 +704,20 @@ function App() {
                   Copiar
                 </button>
                 <button type="button" onClick={doSplit}>Dividir</button>
-                <button type="button" onClick={doExportDocx} title="DOCX: API completa ou exportação de texto no navegador">
+                <button
+                  type="button"
+                  onClick={doExportDocx}
+                  title="DOCX completo (tabelas, logos) — requer API: run.bat ou Railway"
+                >
                   → DOCX
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={doExportDocxTextOnly}
+                  title="Só texto, sem formatação — funciona sem API"
+                >
+                  DOCX texto
                 </button>
                 <button type="button" onClick={doExtractText}>Extrair texto</button>
                 <span className="hint">

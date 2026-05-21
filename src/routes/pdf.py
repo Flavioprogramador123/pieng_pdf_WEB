@@ -381,6 +381,38 @@ def extract_text():
         return jsonify({"error": str(e)}), 500
 
 
+@pdf_bp.route("/convert-docx", methods=["POST"])
+def convert_docx_upload():
+    """Converte PDF enviado diretamente em DOCX (uma etapa)."""
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "Nenhum arquivo enviado"}), 400
+        file = request.files["file"]
+        if not file.filename or not allowed_file(file.filename):
+            return jsonify({"error": "Envie um arquivo .pdf"}), 400
+
+        from converters.pdf_to_docx import convert_pdf_to_docx
+
+        file_id = str(uuid.uuid4())
+        filename = secure_filename(file.filename)
+        pdf_path = os.path.join(UPLOAD_FOLDER, f"{file_id}_{filename}")
+        file.save(pdf_path)
+
+        base = display_name(f"{file_id}_{filename}").rsplit(".", 1)[0]
+        docx_name = f"{base}.docx"
+        out_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4()}_{docx_name}")
+        convert_pdf_to_docx(pdf_path, out_path)
+
+        return send_file(
+            out_path,
+            as_attachment=True,
+            download_name=docx_name,
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @pdf_bp.route("/to-docx/<file_id>", methods=["POST"])
 def to_docx(file_id):
     try:

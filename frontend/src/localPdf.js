@@ -25,7 +25,12 @@ export async function loadLocalDocument(file) {
     pages,
     source: "local",
     viewUrl: blobUrl,
-    store: { bytes, blobUrl, filename: file.name || "documento.pdf" },
+    store: {
+      bytes,
+      originalBytes: bytes.slice(0),
+      blobUrl,
+      filename: file.name || "documento.pdf",
+    },
   };
 }
 
