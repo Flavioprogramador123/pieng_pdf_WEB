@@ -15,11 +15,24 @@ CORS(app)
 app.register_blueprint(pdf_bp, url_prefix="/api/pdf")
 
 
+def _asset_missing(path: str) -> bool:
+    """Nao devolver index.html no lugar de .js/.css ausente (causa tela em branco)."""
+    if not path:
+        return False
+    low = path.lower()
+    return path.startswith("assets/") or low.endswith(
+        (".js", ".mjs", ".css", ".map", ".woff", ".woff2", ".png", ".ico", ".webmanifest")
+    )
+
+
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve(path):
-    if path and os.path.exists(os.path.join(STATIC_DIR, path)):
+    full = os.path.join(STATIC_DIR, path) if path else ""
+    if path and os.path.isfile(full):
         return send_from_directory(STATIC_DIR, path)
+    if _asset_missing(path):
+        return "", 404
     index = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index):
         return send_from_directory(STATIC_DIR, "index.html")
