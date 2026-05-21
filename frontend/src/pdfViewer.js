@@ -15,6 +15,10 @@ export async function renderPage(pdf, pageNum, canvas, rotation = 0, scale = 1.2
   const ctx = canvas.getContext("2d");
   canvas.width = viewport.width;
   canvas.height = viewport.height;
+  canvas.style.width = `${viewport.width}px`;
+  canvas.style.height = `${viewport.height}px`;
+  canvas.style.maxWidth = "none";
+  canvas.style.maxHeight = "none";
   await page.render({ canvasContext: ctx, viewport }).promise;
 }
 

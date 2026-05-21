@@ -161,6 +161,7 @@ function App() {
     const pdf = pdfRef.current;
     if (!pdf) return;
     host.classList.remove("reading-host--sheet", "reading-host--docx");
+    host.classList.add("reading-host--pdf");
     host.innerHTML = "";
     const canvases = [];
     for (let i = 0; i < pages.length; i++) {
@@ -266,6 +267,9 @@ function App() {
         applyOfficeTransform(host, { zoom: readZoom, rotation: readRotation });
         return;
       }
+
+      host.classList.add("reading-host--pdf");
+      host.classList.remove("reading-host--sheet", "reading-host--docx");
 
       if (!pdfRef.current) {
         await loadPdfDoc(active);
