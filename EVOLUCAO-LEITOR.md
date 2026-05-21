@@ -1,6 +1,14 @@
 # Evolução: leitor PDF / Word / Excel
 
+**Relatório de fecho da sessão:** [RELATORIO-FINALIZACAO.md](./RELATORIO-FINALIZACAO.md) (v39 em produção, pendências: zoom, Excel PC opcional).
+
 Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
+
+## Estado atual (21/05/2026)
+
+- **Produção:** v39 — mobile `.docx`/`.xlsx` ok; PC `.xlsx` com deformação leve aceite
+- **Amanhã:** revisar **zoom** com calma (evitar regressões pós-v32)
+- **Futuro PC:** Excel como PDF/imagem só no desktop (opcional)
 
 ## v39 — Ajuste fino Excel (Fortune Sheet)
 
