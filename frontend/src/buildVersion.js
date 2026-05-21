@@ -2,7 +2,7 @@
  * Incrementar BUILD_SEQ a cada deploy visível na web/mobile.
  * GIT_COMMIT é injetado no build (Vercel: VERCEL_GIT_COMMIT_SHA).
  */
-export const BUILD_SEQ = 33;
+export const BUILD_SEQ = 34;
 export const GIT_COMMIT =
   typeof __GIT_COMMIT__ !== "undefined" ? __GIT_COMMIT__ : "dev";
 export const BUILD_LABEL = `v${BUILD_SEQ}`;

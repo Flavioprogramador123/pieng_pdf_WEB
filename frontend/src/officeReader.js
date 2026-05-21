@@ -1,9 +1,25 @@
+import { renderAsync } from "docx-preview";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
 import { DOC_KIND, detectDocKind, isLegacyWordDoc } from "./fileKinds.js";
 
 const LEGACY_DOC_MSG =
   "Arquivo .doc (Word antigo) não abre no navegador. No Word ou LibreOffice: Ficheiro → Guardar como → .docx e envie de novo.";
+
+/** Preserva layout, imagens e logos do .docx (HTML semântico do Mammoth não inclui gráficos). */
+const DOCX_PREVIEW_OPTIONS = {
+  className: "docx",
+  inWrapper: true,
+  ignoreWidth: false,
+  ignoreHeight: false,
+  ignoreFonts: false,
+  breakPages: true,
+  ignoreLastRenderedPageBreak: true,
+  experimental: true,
+  useBase64URL: true,
+  renderHeaders: true,
+  renderFooters: true,
+};
 
 export async function loadOfficeDocument(file) {
   const kind = detectDocKind(file);
@@ -21,15 +37,7 @@ export async function loadOfficeDocument(file) {
   let sheetNames = [];
 
   if (kind === DOC_KIND.DOCX) {
-    try {
-      const { value } = await mammoth.convertToHtml({ arrayBuffer: bytes });
-      previewHtml = value || "<p>(documento vazio)</p>";
-    } catch (e) {
-      const hint = isLegacyWordDoc(file)
-        ? LEGACY_DOC_MSG
-        : "Não foi possível abrir este Word. Confirme que o ficheiro é .docx (não .doc).";
-      throw new Error(hint);
-    }
+    previewHtml = null;
   } else {
     const wb = XLSX.read(bytes, { type: "array" });
     sheetNames = wb.SheetNames || [];
@@ -54,6 +62,20 @@ export async function loadOfficeDocument(file) {
   };
 }
 
+export async function renderDocxInHost(host, bytes, fileId) {
+  mountOfficeHtml(host, null, DOC_KIND.DOCX);
+  const inner = host.querySelector(".read-office-inner");
+  if (!inner) throw new Error("Painel de leitura indisponível.");
+  inner.dataset.docxId = fileId;
+  inner.innerHTML = "";
+  await renderAsync(bytes, inner, null, DOCX_PREVIEW_OPTIONS);
+}
+
+export function isDocxRenderedInHost(host, fileId) {
+  const inner = host?.querySelector(".read-office-inner");
+  return inner?.dataset.docxId === fileId && !!inner.querySelector(".docx-wrapper");
+}
+
 function sheetToHtml(wb, sheetName) {
   const sheet = wb.Sheets[sheetName];
   if (!sheet) return "<p>Aba não encontrada.</p>";
@@ -66,14 +88,15 @@ export function renderSheetFromBytes(bytes, sheetName) {
   return sheetToHtml(wb, sheetName);
 }
 
-export function applyOfficeTransform(hostEl, { zoom, rotation }) {
+export function applyOfficeTransform(hostEl, { zoom, rotation, kind }) {
   if (!hostEl) return;
   const target =
     hostEl.querySelector(".read-office-sheet-scroll") ||
     hostEl.querySelector(".read-office-inner");
   if (target) {
     target.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
-    target.style.transformOrigin = "top left";
+    target.style.transformOrigin =
+      kind === DOC_KIND.DOCX ? "top center" : "top left";
   }
 }
 
@@ -90,7 +113,7 @@ export function mountOfficeHtml(host, html, kind) {
 
   const inner = document.createElement("div");
   inner.className = "read-office-inner";
-  inner.innerHTML = html;
+  if (html) inner.innerHTML = html;
 
   if (isSheet) {
     const scroller = document.createElement("div");

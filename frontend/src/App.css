@@ -509,6 +509,20 @@ button.secondary {
 .read-office--docx .read-office-inner {
   transform-origin: top center;
   max-width: 100%;
+  padding: 0;
+  overflow: visible;
+}
+
+/* docx-preview: layout próximo ao Word (imagens, cabeçalhos, páginas) */
+.read-office-inner .docx-wrapper {
+  background: #fff;
+  padding: 1.25rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.read-office-inner .docx-wrapper img {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Excel: fundo branco acompanha toda a largura da tabela */

@@ -33,7 +33,9 @@ import {
   applyOfficeTransform,
   extractOfficePlainText,
   loadOfficeDocument,
+  isDocxRenderedInHost,
   mountOfficeHtml,
+  renderDocxInHost,
   renderSheetFromBytes,
 } from "./officeReader.js";
 import DefaultAppPrompt from "./DefaultAppPrompt.jsx";
@@ -152,8 +154,18 @@ function App() {
     if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
       const office = officeStoreRef.current.get(activeDoc.file_id);
       if (!office) return;
-      mountOfficeHtml(host, office.previewHtml, activeDoc.kind);
-      applyOfficeTransform(host, { zoom: readZoom, rotation: readRotation });
+      if (activeDoc.kind === DOC_KIND.DOCX) {
+        if (!isDocxRenderedInHost(host, activeDoc.file_id)) {
+          await renderDocxInHost(host, office.bytes, activeDoc.file_id);
+        }
+      } else {
+        mountOfficeHtml(host, office.previewHtml, activeDoc.kind);
+      }
+      applyOfficeTransform(host, {
+        zoom: readZoom,
+        rotation: readRotation,
+        kind: activeDoc.kind,
+      });
       return;
     }
 

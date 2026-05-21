@@ -2,6 +2,12 @@
 
 Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
 
+## v34 — Word (.docx) com layout e imagens
+
+- Leitor `.docx` passa a usar **docx-preview** (mantém logos, gráficos e páginas)
+- v32–v33 usavam só **Mammoth** → HTML sem imagens (nunca foi “Word completo” no Git)
+- Commit base v32: **`85d8606`** (`fix(v32): fundo branco Excel…`)
+
 ## v33 — Upload Word (.doc vs .docx)
 
 - `.docx` e Excel: leitura no navegador (como v32)
