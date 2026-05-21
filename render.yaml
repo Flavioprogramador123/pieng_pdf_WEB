@@ -1,0 +1,10 @@
+# Deploy da API Flask em https://render.com (plano free)
+services:
+  - type: web
+    name: pieng-pdf-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python src/main.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"

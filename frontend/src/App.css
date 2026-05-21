@@ -200,6 +200,19 @@ button.secondary {
   min-width: 0;
 }
 
+.api-banner {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.api-banner code {
+  font-size: 0.78rem;
+  color: #fde68a;
+}
+
 .error-bar {
   background: rgba(239, 68, 68, 0.15);
   color: #fca5a5;

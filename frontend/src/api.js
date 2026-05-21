@@ -6,10 +6,40 @@ function apiRoot() {
 
 const API = apiRoot();
 
+async function parseErrorResponse(res) {
+  const text = await res.text();
+  try {
+    const data = JSON.parse(text);
+    return data.error || res.statusText;
+  } catch {
+    if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+      if (res.status === 404) {
+        return "API offline — configure o servidor (Railway/Render) ou use run.bat no PC.";
+      }
+      return `Servidor retornou HTML (${res.status}). A API não está acessível.`;
+    }
+    return text.slice(0, 120) || res.statusText || "Erro de rede";
+  }
+}
+
+export async function checkApiHealth() {
+  try {
+    const res = await fetch(`${API}/health`, {
+      method: "GET",
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.ok === true;
+  } catch {
+    return false;
+  }
+}
+
 async function jsonFetch(url, options = {}) {
   const res = await fetch(url, options);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  if (!res.ok) throw new Error(data.error || (await parseErrorResponse(res)));
   return data;
 }
 
@@ -17,9 +47,10 @@ export async function uploadPdf(file) {
   const fd = new FormData();
   fd.append("file", file);
   const res = await fetch(`${API}/upload`, { method: "POST", body: fd });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Falha no upload");
-  return data;
+  if (!res.ok) {
+    throw new Error(await parseErrorResponse(res));
+  }
+  return res.json();
 }
 
 export function pdfViewUrl(fileId) {
@@ -101,8 +132,7 @@ export function downloadUrl(fileId) {
 export async function downloadDocx(fileId, filename) {
   const res = await fetch(`${API}/to-docx/${fileId}`, { method: "POST" });
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Falha na conversão DOCX");
+    throw new Error(await parseErrorResponse(res));
   }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);

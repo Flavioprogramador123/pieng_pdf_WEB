@@ -22,6 +22,11 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+@pdf_bp.route("/health", methods=["GET"])
+def health():
+    return jsonify({"ok": True, "service": "pieng-pdf-api"})
+
+
 def resolve_file(file_id: str):
     for name in os.listdir(UPLOAD_FOLDER):
         if name.startswith(f"{file_id}_") or name == file_id:

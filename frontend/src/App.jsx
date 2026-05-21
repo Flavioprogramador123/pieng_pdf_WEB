@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   applyPages,
+  checkApiHealth,
   downloadDocx,
   downloadUrl,
   extractText,
@@ -10,6 +11,14 @@ import {
   splitPdf,
   uploadPdf,
 } from "./api.js";
+import {
+  buildPdfBytes,
+  downloadBytes,
+  isPdfFile,
+  loadLocalDocument,
+  mergeBytesList,
+  revokeStore,
+} from "./localPdf.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
 /** Logo oficial (preto) — mesmo arquivo em header, sidebar e tela central */
@@ -28,19 +37,37 @@ function App() {
   const [textOut, setTextOut] = useState("");
   const [tab, setTab] = useState("editor");
   const [hint, setHint] = useState("");
+  const [apiOnline, setApiOnline] = useState(null);
 
   const canvasRef = useRef(null);
   const readRef = useRef(null);
   const pdfRef = useRef(null);
   const thumbRefs = useRef({});
+  const localStoreRef = useRef(new Map());
 
   const activeDoc = docs.find((d) => d.file_id === active);
 
-  const loadPdfDoc = useCallback(async (fileId) => {
-    const pdf = await loadPdf(pdfViewUrl(fileId));
-    pdfRef.current = pdf;
-    return pdf;
+  const docViewUrl = useCallback(
+    (fileId) => {
+      const doc = docs.find((d) => d.file_id === fileId);
+      return doc?.viewUrl || pdfViewUrl(fileId);
+    },
+    [docs]
+  );
+
+  useEffect(() => {
+    checkApiHealth().then(setApiOnline);
   }, []);
+
+  const loadPdfDoc = useCallback(
+    async (fileId) => {
+      pdfRef.current = null;
+      const pdf = await loadPdf(docViewUrl(fileId));
+      pdfRef.current = pdf;
+      return pdf;
+    },
+    [docViewUrl]
+  );
 
   const paintMain = useCallback(async () => {
     const pdf = pdfRef.current;
@@ -134,6 +161,7 @@ function App() {
   };
 
   const openDoc = async (doc, pageList) => {
+    pdfRef.current = null;
     setActive(doc.file_id);
     setPages(pageList || doc.pages || []);
     setCurrentIdx(0);
@@ -142,19 +170,55 @@ function App() {
     setTab("editor");
   };
 
+  const registerLocalDoc = (loaded) => {
+    localStoreRef.current.set(loaded.file_id, loaded.store);
+    const doc = {
+      file_id: loaded.file_id,
+      filename: loaded.filename,
+      num_pages: loaded.num_pages,
+      pages: loaded.pages,
+      source: "local",
+      viewUrl: loaded.viewUrl,
+    };
+    return doc;
+  };
+
   const onUpload = async (fileList) => {
     setLoading(true);
     setError("");
+    const files = [...fileList].filter(isPdfFile);
+    if (!files.length) {
+      setError("Selecione um arquivo .pdf (no celular o tipo pode vir vazio — use arquivo .pdf).");
+      setLoading(false);
+      return;
+    }
+    const apiOk = apiOnline === true ? true : await checkApiHealth();
+    setApiOnline(apiOk);
     try {
-      for (const file of fileList) {
-        if (file.type !== "application/pdf") continue;
-        const res = await uploadPdf(file);
-        const doc = { ...res, pages: res.pages || [] };
+      for (const file of files) {
+        let doc = null;
+        if (apiOk) {
+          try {
+            const res = await uploadPdf(file);
+            doc = { ...res, pages: res.pages || [], source: "api" };
+          } catch (apiErr) {
+            console.warn("Upload API falhou, modo local:", apiErr);
+          }
+        }
+        if (!doc) {
+          const loaded = await loadLocalDocument(file);
+          doc = registerLocalDoc(loaded);
+          setHint(
+            apiOk
+              ? "PDF carregado localmente."
+              : "Modo local: PDF processado no seu dispositivo (Netlify sem API ou servidor parado)."
+          );
+        }
         setDocs((d) => [...d, doc]);
         await openDoc(doc, doc.pages);
       }
     } catch (e) {
-      setError(e.message);
+      setError(e.message || "Falha ao abrir o PDF");
     } finally {
       setLoading(false);
     }
@@ -169,17 +233,41 @@ function App() {
         /\.pdf$/i,
         "_editado.pdf"
       );
+      if (activeDoc?.source === "local") {
+        const store = localStoreRef.current.get(active);
+        if (!store) throw new Error("Arquivo local não encontrado.");
+        const bytes = await buildPdfBytes(store.bytes, pages);
+        revokeStore(store);
+        store.bytes = bytes;
+        store.blobUrl = URL.createObjectURL(
+          new Blob([bytes], { type: "application/pdf" })
+        );
+        store.filename = name;
+        const updated = {
+          ...activeDoc,
+          filename: name,
+          num_pages: pages.length,
+          pages: pages.map((p) => ({ ...p })),
+          viewUrl: store.blobUrl,
+        };
+        setDocs((d) => d.map((x) => (x.file_id === active ? updated : x)));
+        pdfRef.current = null;
+        await loadPdfDoc(active);
+        downloadBytes(bytes, name);
+        setHint("PDF salvo e baixado no seu dispositivo.");
+        return;
+      }
       const res = await applyPages(active, pages, name);
       const info = await getInfo(res.file_id);
-      const doc = { ...res, ...info, pages: info.pages };
+      const doc = { ...res, ...info, pages: info.pages, source: "api" };
       setDocs((d) => [...d, doc]);
       setActive(res.file_id);
       setPages(info.pages);
       setCurrentIdx(0);
       setSelected(new Set());
+      pdfRef.current = null;
       await loadPdfDoc(res.file_id);
-      setError("");
-      alert("PDF salvo com as alterações.");
+      setHint("PDF salvo no servidor.");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -279,16 +367,29 @@ function App() {
     }
     setLoading(true);
     try {
-      const res = await mergePdfs(ids);
-      const doc = {
-        ...res,
-        pages: Array.from({ length: res.num_pages }, (_, i) => ({
-          page: i + 1,
-          rotation: 0,
-        })),
-      };
-      setDocs((d) => [...d, doc]);
-      await openDoc(doc, doc.pages);
+      const picked = docs.filter((d) => ids.includes(d.file_id));
+      const allLocal = picked.every((d) => d.source === "local");
+      if (allLocal) {
+        const bytesList = ids.map((id) => localStoreRef.current.get(id)?.bytes).filter(Boolean);
+        const merged = await mergeBytesList(bytesList);
+        const file = new File([merged], "merged.pdf", { type: "application/pdf" });
+        const loaded = await loadLocalDocument(file);
+        const doc = registerLocalDoc(loaded);
+        setDocs((d) => [...d, doc]);
+        await openDoc(doc, doc.pages);
+      } else {
+        const res = await mergePdfs(ids);
+        const doc = {
+          ...res,
+          source: "api",
+          pages: Array.from({ length: res.num_pages }, (_, i) => ({
+            page: i + 1,
+            rotation: 0,
+          })),
+        };
+        setDocs((d) => [...d, doc]);
+        await openDoc(doc, doc.pages);
+      }
       setMergeIds(new Set());
     } catch (e) {
       setError(e.message);
@@ -298,16 +399,32 @@ function App() {
   };
 
   const doSplit = async () => {
-    if (!active) return;
+    if (!active || !pages.length) return;
     setLoading(true);
     try {
-      const res = await splitPdf(active);
-      const newDocs = res.split_files.map((f) => ({
-        ...f,
-        pages: [{ page: 1, rotation: 0 }],
-      }));
-      setDocs((d) => [...d, ...newDocs]);
-      alert(`${res.total_files} arquivos criados (uma página cada).`);
+      if (activeDoc?.source === "local") {
+        const store = localStoreRef.current.get(active);
+        const newDocs = [];
+        for (let i = 0; i < pages.length; i++) {
+          const slot = pages[i];
+          const bytes = await buildPdfBytes(store.bytes, [slot]);
+          const file = new File([bytes], `page_${i + 1}.pdf`, { type: "application/pdf" });
+          const loaded = await loadLocalDocument(file);
+          const doc = registerLocalDoc(loaded);
+          newDocs.push(doc);
+        }
+        setDocs((d) => [...d, ...newDocs]);
+        alert(`${newDocs.length} PDFs criados (uma página cada).`);
+      } else {
+        const res = await splitPdf(active);
+        const newDocs = res.split_files.map((f) => ({
+          ...f,
+          source: "api",
+          pages: [{ page: 1, rotation: 0 }],
+        }));
+        setDocs((d) => [...d, ...newDocs]);
+        alert(`${res.total_files} arquivos criados (uma página cada).`);
+      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -319,11 +436,22 @@ function App() {
     if (!active) return;
     setLoading(true);
     try {
-      const res = await extractText(active);
-      const parts = Object.entries(res.extracted_text || {}).map(
-        ([k, v]) => `--- ${k} ---\n${v}`
-      );
-      setTextOut(parts.join("\n\n"));
+      if (activeDoc?.source === "local" && pdfRef.current) {
+        const parts = [];
+        for (let i = 0; i < pages.length; i++) {
+          const page = await pdfRef.current.getPage(pages[i].page);
+          const tc = await page.getTextContent();
+          const text = tc.items.map((it) => it.str).join(" ");
+          parts.push(`--- page_${i + 1} ---\n${text}`);
+        }
+        setTextOut(parts.join("\n\n"));
+      } else {
+        const res = await extractText(active);
+        const parts = Object.entries(res.extracted_text || {}).map(
+          ([k, v]) => `--- ${k} ---\n${v}`
+        );
+        setTextOut(parts.join("\n\n"));
+      }
       setTab("texto");
     } catch (e) {
       setError(e.message);
@@ -405,7 +533,12 @@ function App() {
                     }}
                   />
                 </label>
-                <a href={downloadUrl(d.file_id)} download className="icon-btn" title="Download">
+                <a
+                  href={d.source === "local" ? d.viewUrl : downloadUrl(d.file_id)}
+                  download={d.filename}
+                  className="icon-btn"
+                  title="Download"
+                >
                   ↓
                 </a>
               </div>
@@ -418,6 +551,12 @@ function App() {
         </aside>
 
         <main className="workspace">
+          {apiOnline === false && (
+            <div className="api-banner">
+              API offline — PDFs abrem no modo local (PC e celular). Para DOCX e nuvem, suba a API
+              (Railway) ou execute <code>run.bat</code> e acesse localhost:5001.
+            </div>
+          )}
           {error && <div className="error-bar">{error}</div>}
 
           <div className="tabs">
@@ -476,10 +615,13 @@ function App() {
                 <button type="button" onClick={doSplit}>Dividir</button>
                 <button
                   type="button"
-                  onClick={() =>
-                    activeDoc &&
-                    downloadDocx(active, activeDoc.filename).catch((e) => setError(e.message))
-                  }
+                  onClick={() => {
+                    if (activeDoc?.source === "local") {
+                      setError("DOCX requer API no servidor (Railway/Render) ou run.bat no PC.");
+                      return;
+                    }
+                    downloadDocx(active, activeDoc.filename).catch((e) => setError(e.message));
+                  }}
                 >
                   → DOCX
                 </button>
