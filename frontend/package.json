@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fortune-sheet/react": "^1.0.4",
+    "@zenmrp/fortune-sheet-excel": "^1.0.3",
     "docx": "^9.6.1",
     "docx-preview": "^0.3.7",
     "mammoth": "^1.12.0",

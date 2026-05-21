@@ -6,4 +6,6 @@ export const FEATURES = {
   readingToolbar: true,
   officeReader: true,
   defaultAppPrompt: true,
+  /** false = Fortune Sheet (layout fiel). true = HTML SheetJS (rollback v37). */
+  excelHtmlFallback: false,
 };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import {
   applyPages,
   checkApiHealth,
@@ -38,6 +38,7 @@ import {
   renderSheetFromBytes,
 } from "./officeReader.js";
 import DefaultAppPrompt from "./DefaultAppPrompt.jsx";
+const ExcelFortuneViewer = lazy(() => import("./ExcelFortuneViewer.jsx"));
 import ReadingToolbar, { READ_ZOOM_DEFAULT, nextZoom } from "./ReadingToolbar.jsx";
 import { isInstalledPwa } from "./defaultApp.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
@@ -75,6 +76,7 @@ function App() {
   const onUploadRef = useRef(null);
   const deferredInstallRef = useRef(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [excelHtmlFallbackActive, setExcelHtmlFallbackActive] = useState(false);
 
   const activeDoc = docs.find((d) => d.file_id === active);
   const isPdfDoc = !activeDoc?.kind || activeDoc.kind === DOC_KIND.PDF;
@@ -146,9 +148,16 @@ function App() {
     }
   }, [pages]);
 
+  const useExcelHtmlViewer =
+    FEATURES.excelHtmlFallback || excelHtmlFallbackActive;
+
   const paintReading = useCallback(async () => {
     const host = readRef.current;
     if (!host || !activeDoc) return;
+
+    if (activeDoc.kind === DOC_KIND.XLS && !useExcelHtmlViewer) {
+      return;
+    }
 
     if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
       const office = officeStoreRef.current.get(activeDoc.file_id);
@@ -185,7 +194,7 @@ function App() {
       await renderPage(pdf, pages[i].page, canvases[i], rot, readZoom);
     }
     requestAnimationFrame(() => scrollToReadPage(readPageIdx));
-  }, [pages, readZoom, readRotation, readPageIdx, activeDoc]);
+  }, [pages, readZoom, readRotation, readPageIdx, activeDoc, useExcelHtmlViewer]);
 
   const scrollToReadPage = (idx) => {
     const host = readRef.current;
@@ -209,9 +218,11 @@ function App() {
     }
 
     if (activeDoc.kind === DOC_KIND.XLS) {
-      const table = host.querySelector("#pieng-sheet-table");
-      const tableW = table?.scrollWidth || table?.offsetWidth;
-      if (tableW) setReadZoom(Math.min(3, Math.max(0.5, w / tableW)));
+      const fortuneEl = document.querySelector(".excel-fortune-viewport");
+      const table = host?.querySelector("#pieng-sheet-table");
+      const target = fortuneEl || table;
+      const targetW = target?.scrollWidth || target?.offsetWidth;
+      if (targetW) setReadZoom(Math.min(3, Math.max(0.5, w / targetW)));
       return;
     }
 
@@ -281,15 +292,20 @@ function App() {
     paintMain,
     paintThumbs,
     paintReading,
+    useExcelHtmlViewer,
   ]);
 
   const changeOfficeSheet = async (sheetName) => {
     const office = officeStoreRef.current.get(active);
     if (!office?.bytes) return;
     office.activeSheet = sheetName;
-    office.previewHtml = renderSheetFromBytes(office.bytes, sheetName);
-    officeStoreRef.current.set(active, office);
-    await paintReading();
+    if (useExcelHtmlViewer) {
+      office.previewHtml = renderSheetFromBytes(office.bytes, sheetName);
+      officeStoreRef.current.set(active, office);
+      await paintReading();
+    } else {
+      officeStoreRef.current.set(active, office);
+    }
   };
 
   const goEditor = () => {
@@ -299,6 +315,7 @@ function App() {
 
   const openDoc = async (doc, pageList) => {
     pdfRef.current = null;
+    setExcelHtmlFallbackActive(false);
     setActive(doc.file_id);
     setPages(pageList || doc.pages || []);
     setCurrentIdx(0);
@@ -985,7 +1002,7 @@ function App() {
                 activeSheet={officeStoreRef.current.get(active)?.activeSheet}
                 onZoomIn={() => setReadZoom((z) => nextZoom(z, 1))}
                 onZoomOut={() => setReadZoom((z) => nextZoom(z, -1))}
-                onZoomReset={() => setReadZoom(1.4)}
+                onZoomReset={() => setReadZoom(READ_ZOOM_DEFAULT)}
                 onFitWidth={() => fitReadWidth().catch((e) => setError(e.message))}
                 onRotateLeft={() => setReadRotation((r) => (r - 90 + 360) % 360)}
                 onRotateRight={() => setReadRotation((r) => (r + 90) % 360)}
@@ -1001,7 +1018,44 @@ function App() {
                 }}
                 onSheetChange={(name) => changeOfficeSheet(name).catch((e) => setError(e.message))}
               />
-              <div className="reading-scroll" ref={readRef} />
+              {activeDoc?.kind === DOC_KIND.XLS && !useExcelHtmlViewer ? (
+                <Suspense
+                  fallback={
+                    <p className="read-placeholder">A carregar planilha…</p>
+                  }
+                >
+                <ExcelFortuneViewer
+                  bytes={officeStoreRef.current.get(active)?.bytes}
+                  filename={activeDoc?.filename || "planilha.xlsx"}
+                  activeSheet={
+                    officeStoreRef.current.get(active)?.activeSheet
+                  }
+                  zoom={readZoom}
+                  rotation={readRotation}
+                  onLoadError={(msg) => {
+                    const office = officeStoreRef.current.get(active);
+                    if (office?.bytes) {
+                      try {
+                        office.previewHtml = renderSheetFromBytes(
+                          office.bytes,
+                          office.activeSheet
+                        );
+                        officeStoreRef.current.set(active, office);
+                      } catch {
+                        /* ignora */
+                      }
+                    }
+                    setExcelHtmlFallbackActive(true);
+                    setHint(
+                      "Vista Excel simplificada (fallback). Para layout completo, use .xlsx."
+                    );
+                    setError(msg);
+                  }}
+                />
+                </Suspense>
+              ) : (
+                <div className="reading-scroll" ref={readRef} />
+              )}
             </div>
           ) : !isPdfDoc ? (
             <div className="office-hint">

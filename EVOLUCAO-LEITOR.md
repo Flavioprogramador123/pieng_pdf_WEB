@@ -2,6 +2,12 @@
 
 Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
 
+## v38 — Excel com Fortune Sheet (modo leitura)
+
+- `.xlsx` / `.xls` com **Fortune Sheet** + importador com estilos (substitui tabela HTML)
+- Rollback: `excelHtmlFallback: true` em `featureFlags.js` (vista HTML v37)
+- Se o import falhar, volta automaticamente para HTML simplificado
+
 ## v37 — Layout Word/Excel fiel
 
 - Zoom padrão **100%** (antes 140% deformava o documento)

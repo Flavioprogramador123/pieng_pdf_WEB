@@ -609,6 +609,27 @@ button.secondary {
   color: #333;
 }
 
+/* Fortune Sheet — modo leitura Excel */
+.excel-fortune-viewport {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+.reading-panel .excel-fortune-viewport {
+  display: flex;
+  flex-direction: column;
+}
+
+.excel-fortune-viewport .fortune-sheet-container {
+  flex: 1;
+  min-height: 320px;
+}
+
 .office-hint {
   flex: 1;
   display: flex;
