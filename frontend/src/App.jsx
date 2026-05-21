@@ -3,7 +3,6 @@ import {
   applyPages,
   checkApiHealth,
   convertPdfFileToDocx,
-  downloadDocx,
   downloadUrl,
   extractText,
   getInfo,
@@ -495,6 +494,21 @@ function App() {
     return name;
   };
 
+  /** PDF atual como File — uma requisição POST (evita file_id em serverless). */
+  const pdfFileForApiDocx = async () => {
+    const fn = activeDoc.filename || "documento.pdf";
+    if (activeDoc.source === "local") {
+      const store = localStoreRef.current.get(active);
+      if (!store) throw new Error("Arquivo local não encontrado.");
+      const bytes = await pdfBytesForDocx();
+      return new File([bytes], fn, { type: "application/pdf" });
+    }
+    const res = await fetch(docViewUrl(active));
+    if (!res.ok) throw new Error("Não foi possível ler o PDF para conversão.");
+    const blob = await res.blob();
+    return new File([blob], fn, { type: "application/pdf" });
+  };
+
   const doExportDocx = async () => {
     if (!active || !activeDoc || !pages.length) return;
     setLoading(true);
@@ -504,26 +518,21 @@ function App() {
       setApiOnline(apiOk);
 
       if (apiOk) {
-        if (activeDoc.source === "api") {
-          await downloadDocx(active, activeDoc.filename);
-          setHint("DOCX completo — tabelas, logos e layout preservados.");
-          return;
-        }
-        const store = localStoreRef.current.get(active);
-        if (store) {
-          const bytes = await pdfBytesForDocx();
-          const fn = activeDoc.filename || "documento.pdf";
-          const file = new File([bytes], fn, { type: "application/pdf" });
+        try {
+          const file = await pdfFileForApiDocx();
           await convertPdfFileToDocx(file);
-          setHint("DOCX completo — tabelas, logos e layout preservados.");
+          setHint("DOCX completo — tabelas, logos e layout (API).");
           return;
+        } catch (apiErr) {
+          console.warn("DOCX API:", apiErr);
         }
-        throw new Error("Arquivo não encontrado para conversão.");
       }
 
       const name = await exportSimpleDocx();
       setHint(
-        `${name} — DOCX editável (texto por página). API offline: sem tabelas/logos do PDF.`
+        apiOk
+          ? `${name} — DOCX editável (texto). Conversão completa na API indisponível.`
+          : `${name} — DOCX editável (texto por página), sem API.`
       );
     } catch (e) {
       setError(e.message || "Falha ao gerar DOCX");
@@ -756,7 +765,7 @@ function App() {
                 <button
                   type="button"
                   onClick={doExportDocx}
-                  title="DOCX editável — API completa se online; senão texto no navegador"
+                  title="DOCX editável — tenta API; se falhar, gera no navegador (como v10)"
                 >
                   → DOCX
                 </button>
