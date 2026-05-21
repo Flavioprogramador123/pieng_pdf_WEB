@@ -30,6 +30,7 @@ import { FEATURES } from "./features/featureFlags.js";
 import { downloadSimpleDocx, extractPageTexts } from "./docxExport.js";
 import {
   applyOfficeTransform,
+  extractOfficePlainText,
   loadOfficeDocument,
   mountOfficeHtml,
   renderSheetFromBytes,
@@ -659,32 +660,53 @@ function App() {
     }
   };
 
-  const doExtractText = async () => {
-    if (!active) return;
+  const extractActiveText = useCallback(async () => {
+    if (!active || !activeDoc) return "";
+
+    if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
+      return extractOfficePlainText(active, activeDoc.kind, officeStoreRef.current);
+    }
+
+    if (!pdfRef.current) await loadPdfDoc(active);
+    if (pdfRef.current) {
+      const parts = [];
+      for (let i = 0; i < pages.length; i++) {
+        const page = await pdfRef.current.getPage(pages[i].page);
+        const tc = await page.getTextContent();
+        const text = tc.items.map((it) => it.str).join(" ").trim();
+        parts.push(`--- Página ${i + 1} ---\n${text || "(sem texto nesta página)"}`);
+      }
+      return parts.join("\n\n");
+    }
+
+    const res = await extractText(active);
+    const parts = Object.entries(res.extracted_text || {}).map(
+      ([k, v]) => `--- ${k} ---\n${v}`
+    );
+    return parts.join("\n\n") || "(sem texto detectável)";
+  }, [active, activeDoc, pages, loadPdfDoc]);
+
+  const openTextTab = async () => {
+    setTab("texto");
+    setError("");
+    if (!active || !activeDoc) {
+      setTextOut("");
+      return;
+    }
     setLoading(true);
     try {
-      if (activeDoc?.source === "local" && pdfRef.current) {
-        const parts = [];
-        for (let i = 0; i < pages.length; i++) {
-          const page = await pdfRef.current.getPage(pages[i].page);
-          const tc = await page.getTextContent();
-          const text = tc.items.map((it) => it.str).join(" ");
-          parts.push(`--- page_${i + 1} ---\n${text}`);
-        }
-        setTextOut(parts.join("\n\n"));
-      } else {
-        const res = await extractText(active);
-        const parts = Object.entries(res.extracted_text || {}).map(
-          ([k, v]) => `--- ${k} ---\n${v}`
-        );
-        setTextOut(parts.join("\n\n"));
-      }
-      setTab("texto");
+      const text = await extractActiveText();
+      setTextOut(text);
     } catch (e) {
-      setError(e.message);
+      setError(e.message || "Falha ao extrair texto");
+      setTextOut("");
     } finally {
       setLoading(false);
     }
+  };
+
+  const doExtractText = async () => {
+    await openTextTab();
   };
 
   const toggleSelect = (idx) => {
@@ -824,7 +846,12 @@ function App() {
             >
               Editor
             </button>
-            <button type="button" className={tab === "texto" ? "on" : ""} onClick={() => setTab("texto")}>
+            <button
+              type="button"
+              className={tab === "texto" ? "on" : ""}
+              onClick={() => openTextTab().catch((e) => setError(e.message))}
+              title="Extrair e ver texto do arquivo ativo"
+            >
               Texto
             </button>
           </div>
@@ -832,7 +859,29 @@ function App() {
           {hint && tab === "editor" && <div className="hint-bar">{hint}</div>}
 
           {tab === "texto" ? (
-            <pre className="text-panel">{textOut || "Extraia o texto do PDF ativo."}</pre>
+            <div className="text-tab">
+              <div className="text-tab-bar">
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => openTextTab().catch((e) => setError(e.message))}
+                  disabled={!active || loading}
+                >
+                  Atualizar texto
+                </button>
+                {activeDoc && (
+                  <span className="text-tab-file">{activeDoc.filename}</span>
+                )}
+              </div>
+              <pre className="text-panel">
+                {loading && tab === "texto"
+                  ? "Extraindo texto…"
+                  : textOut ||
+                    (active
+                      ? "(nenhum texto — clique em Atualizar texto)"
+                      : "Selecione um arquivo em Arquivos.")}
+              </pre>
+            </div>
           ) : !active ? (
             <div className="empty">
               <img src={LOGO_PIENG} alt="PIENG" className="empty-logo" />

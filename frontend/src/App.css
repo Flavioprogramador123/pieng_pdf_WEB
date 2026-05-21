@@ -546,6 +546,31 @@ button.secondary {
   width: 100%;
 }
 
+.text-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.text-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.text-tab-file {
+  font-size: 0.72rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: min(100%, 280px);
+}
+
 .text-panel {
   flex: 1;
   margin: 1rem;
@@ -556,6 +581,7 @@ button.secondary {
   white-space: pre-wrap;
   font-size: 0.85rem;
   line-height: 1.5;
+  min-height: 120px;
 }
 
 .empty {

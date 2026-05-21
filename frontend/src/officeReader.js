@@ -78,6 +78,22 @@ export function mountOfficeHtml(host, html) {
   return inner;
 }
 
+export async function extractOfficePlainText(fileId, kind, officeStore) {
+  const office = officeStore.get(fileId);
+  if (!office?.bytes) throw new Error("Documento não encontrado.");
+
+  if (kind === DOC_KIND.DOCX) {
+    const { value } = await mammoth.extractRawText({ arrayBuffer: office.bytes });
+    return value?.trim() || "(sem texto detectável)";
+  }
+
+  const wb = XLSX.read(office.bytes, { type: "array" });
+  const sheetName = office.activeSheet || wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  if (!sheet) return "(planilha vazia)";
+  return XLSX.utils.sheet_to_csv(sheet);
+}
+
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, "&amp;")
