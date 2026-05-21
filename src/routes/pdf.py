@@ -381,6 +381,38 @@ def extract_text():
         return jsonify({"error": str(e)}), 500
 
 
+@pdf_bp.route("/convert-legacy-doc", methods=["POST"])
+def convert_legacy_doc():
+    """Converte .doc (Word 97–2003) para .docx no servidor (LibreOffice ou Word no Windows)."""
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "Nenhum arquivo enviado"}), 400
+        file = request.files["file"]
+        if not file.filename:
+            return jsonify({"error": "Nenhum arquivo selecionado"}), 400
+        raw = secure_filename(file.filename) or "documento.doc"
+        low = raw.lower()
+        if not low.endswith(".doc") or low.endswith(".docx"):
+            return jsonify({"error": "Envie um arquivo .doc (Word antigo), não .docx"}), 400
+
+        from converters.doc_to_docx import convert_doc_to_docx
+
+        file_id = str(uuid.uuid4())
+        doc_path = os.path.join(UPLOAD_FOLDER, f"{file_id}_{raw}")
+        file.save(doc_path)
+        base = display_name(f"{file_id}_{raw}").rsplit(".", 1)[0]
+        out_path = os.path.join(UPLOAD_FOLDER, f"{uuid.uuid4()}_{base}.docx")
+        convert_doc_to_docx(doc_path, out_path)
+        return send_file(
+            out_path,
+            as_attachment=False,
+            download_name=f"{base}.docx",
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @pdf_bp.route("/convert-docx", methods=["POST"])
 def convert_docx_upload():
     """Converte PDF enviado diretamente em DOCX (uma etapa)."""

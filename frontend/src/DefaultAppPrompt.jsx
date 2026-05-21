@@ -66,7 +66,7 @@ export default function DefaultAppPrompt({
         </p>
         <ul className="default-app-benefits">
           <li>Leitura com zoom, girar e modo foco</li>
-          <li>Abre .pdf, .docx e .xls direto no app (.doc antigo: guarde como .docx)</li>
+          <li>Abre .pdf, .doc, .docx e .xls no app (conversão .doc no servidor quando disponível)</li>
           <li>Funciona instalado como aplicativo (PWA)</li>
         </ul>
         {installed && (

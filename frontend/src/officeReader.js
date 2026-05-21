@@ -1,10 +1,16 @@
 import { renderAsync } from "docx-preview";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
-import { DOC_KIND, detectDocKind, isLegacyWordDoc } from "./fileKinds.js";
+import { convertLegacyDocToDocxBuffer } from "./api.js";
+import {
+  DOC_KIND,
+  detectDocKind,
+  isLegacyWordDoc,
+  isZipArchive,
+} from "./fileKinds.js";
 
 const LEGACY_DOC_MSG =
-  "Arquivo .doc (Word antigo) não abre no navegador. No Word ou LibreOffice: Ficheiro → Guardar como → .docx e envie de novo.";
+  "Não foi possível abrir o .doc. Na Vercel: guarde como .docx no Word/LibreOffice. No PC: use run.bat com LibreOffice ou Word instalado.";
 
 /** Preserva layout, imagens e logos do .docx (HTML semântico do Mammoth não inclui gráficos). */
 const DOCX_PREVIEW_OPTIONS = {
@@ -27,11 +33,15 @@ export async function loadOfficeDocument(file) {
     throw new Error("Formato de documento não suportado.");
   }
 
-  if (kind === DOC_KIND.DOCX && isLegacyWordDoc(file)) {
-    throw new Error(LEGACY_DOC_MSG);
-  }
+  let bytes = await file.arrayBuffer();
 
-  const bytes = await file.arrayBuffer();
+  if (kind === DOC_KIND.DOCX && isLegacyWordDoc(file) && !isZipArchive(bytes)) {
+    try {
+      bytes = await convertLegacyDocToDocxBuffer(file);
+    } catch (e) {
+      throw new Error(e.message || LEGACY_DOC_MSG);
+    }
+  }
   const file_id = crypto.randomUUID();
   let previewHtml = "";
   let sheetNames = [];

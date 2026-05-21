@@ -2,6 +2,12 @@
 
 Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
 
+## v35 — Abrir .doc (Word antigo)
+
+- Upload `.doc` tenta conversão na API (`/convert-legacy-doc`) com LibreOffice ou Word (Windows)
+- Se o ficheiro for ZIP disfarçado de `.doc`, abre direto como `.docx`
+- Na Vercel sem LibreOffice: guarde como `.docx` ou use `run.bat` no PC
+
 ## v34 — Word (.docx) com layout e imagens
 
 - Leitor `.docx` passa a usar **docx-preview** (mantém logos, gráficos e páginas)

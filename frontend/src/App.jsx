@@ -24,7 +24,6 @@ import {
   DOC_KIND,
   acceptUploadTypes,
   detectDocKind,
-  isLegacyWordDoc,
   isSupportedFile,
 } from "./fileKinds.js";
 import { FEATURES } from "./features/featureFlags.js";
@@ -355,7 +354,7 @@ function App() {
     if (!files.length) {
       setError(
         FEATURES.officeReader
-          ? "Selecione PDF, Word (.docx) ou Excel (.xls/.xlsx). Ficheiros .doc antigos: converta para .docx."
+          ? "Selecione PDF, Word (.docx ou .doc) ou Excel (.xls/.xlsx)."
           : "Selecione um arquivo .pdf (no celular o tipo pode vir vazio — use arquivo .pdf)."
       );
       setLoading(false);
@@ -367,12 +366,6 @@ function App() {
     try {
       for (const file of files) {
         let doc = null;
-        if (FEATURES.officeReader && isLegacyWordDoc(file)) {
-          uploadErrors.push(
-            `${file.name || "Word"}: .doc não suportado — guarde como .docx e envie de novo.`
-          );
-          continue;
-        }
         if (apiOk && detectDocKind(file) === DOC_KIND.PDF) {
           try {
             const res = await uploadPdf(file);

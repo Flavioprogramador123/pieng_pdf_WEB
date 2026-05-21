@@ -5,6 +5,12 @@ export const DOC_KIND = {
 };
 
 /** Word 97–2003 (.doc / application/msword) — não é o mesmo que .docx no navegador */
+/** .docx é ZIP (PK..); alguns ficheiros .doc mal nomeados são na verdade .docx */
+export function isZipArchive(buffer) {
+  const u8 = new Uint8Array(buffer);
+  return u8.length >= 4 && u8[0] === 0x50 && u8[1] === 0x4b;
+}
+
 export function isLegacyWordDoc(file) {
   const name = (file?.name || "").toLowerCase();
   if (name.endsWith(".docx")) return false;

@@ -141,6 +141,17 @@ export async function downloadDocx(fileId, filename) {
   triggerDownload(blob, filename.replace(/\.pdf$/i, ".docx"));
 }
 
+/** Converte .doc (Word antigo) para .docx no servidor — requer LibreOffice ou Word (Windows). */
+export async function convertLegacyDocToDocxBuffer(file) {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API}/convert-legacy-doc`, { method: "POST", body: fd });
+  if (!res.ok) {
+    throw new Error(await parseErrorResponse(res));
+  }
+  return res.arrayBuffer();
+}
+
 /** Conversão completa PDF→DOCX em uma requisição (preserva tabelas/logos no servidor). */
 export async function convertPdfFileToDocx(file) {
   const fd = new FormData();
