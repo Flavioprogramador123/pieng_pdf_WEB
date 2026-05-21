@@ -17,7 +17,7 @@ async function parseErrorResponse(res) {
   } catch {
     if (text.includes("<!DOCTYPE") || text.includes("<html")) {
       if (res.status === 404) {
-        return "API offline — configure o servidor (Railway/Render) ou use run.bat no PC.";
+        return "API offline — aguarde o deploy Vercel (VERCEL.md) ou use run.bat → http://localhost:5001 no PC.";
       }
       return `Servidor retornou HTML (${res.status}). A API não está acessível.`;
     }

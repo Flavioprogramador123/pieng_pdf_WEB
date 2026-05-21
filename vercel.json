@@ -4,12 +4,16 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "src/static",
   "functions": {
-    "api/index.py": {
+    "api/**/*.py": {
       "maxDuration": 60,
       "memory": 2048
     }
   },
   "rewrites": [
+    {
+      "source": "/api/pdf/:path*",
+      "destination": "/api/index"
+    },
     {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
