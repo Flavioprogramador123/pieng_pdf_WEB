@@ -35,7 +35,9 @@ import {
   mountOfficeHtml,
   renderSheetFromBytes,
 } from "./officeReader.js";
+import DefaultAppPrompt from "./DefaultAppPrompt.jsx";
 import ReadingToolbar, { nextZoom } from "./ReadingToolbar.jsx";
+import { isInstalledPwa } from "./defaultApp.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
 /** Logo oficial (preto) — mesmo arquivo em header, sidebar e tela central */
@@ -68,6 +70,9 @@ function App() {
   const thumbRefs = useRef({});
   const localStoreRef = useRef(new Map());
   const officeStoreRef = useRef(new Map());
+  const onUploadRef = useRef(null);
+  const deferredInstallRef = useRef(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   const activeDoc = docs.find((d) => d.file_id === active);
   const isPdfDoc = !activeDoc?.kind || activeDoc.kind === DOC_KIND.PDF;
@@ -85,6 +90,24 @@ function App() {
       setApiOnline(ok);
       if (ok) setHideApiBanner(true);
     });
+  }, []);
+
+  useEffect(() => {
+    const onInstallable = (e) => {
+      e.preventDefault();
+      deferredInstallRef.current = e;
+    };
+    window.addEventListener("beforeinstallprompt", onInstallable);
+    return () => window.removeEventListener("beforeinstallprompt", onInstallable);
+  }, []);
+
+  const requestPwaInstall = useCallback(async () => {
+    const ev = deferredInstallRef.current;
+    if (!ev) return false;
+    await ev.prompt();
+    const { outcome } = await ev.userChoice;
+    if (outcome === "accepted") deferredInstallRef.current = null;
+    return outcome === "accepted";
   }, []);
 
   const dismissApiBanner = () => {
@@ -367,6 +390,19 @@ function App() {
       setLoading(false);
     }
   };
+
+  onUploadRef.current = onUpload;
+
+  useEffect(() => {
+    if (!("launchQueue" in window)) return;
+    window.launchQueue.setConsumer(async (launchParams) => {
+      if (!launchParams.files?.length) return;
+      const files = await Promise.all(
+        [...launchParams.files].map((handle) => handle.getFile())
+      );
+      await onUploadRef.current?.(files);
+    });
+  }, []);
 
   const saveChanges = async () => {
     if (!active || !pages.length) return;
@@ -730,6 +766,16 @@ function App() {
         </div>
         <div className="topbar-end">
           <div className="top-actions">
+            {FEATURES.defaultAppPrompt && !isInstalledPwa() && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setShowInstallPrompt(true)}
+                title="Instalar como leitor de PDF e Office"
+              >
+                Instalar leitor
+              </button>
+            )}
             <button type="button" onClick={() => setReadingMode((r) => !r)}>
               {readingMode ? "Modo editor" : "Modo leitura"}
             </button>
@@ -1005,6 +1051,14 @@ function App() {
           )}
         </main>
       </div>
+
+      {FEATURES.defaultAppPrompt && (
+        <DefaultAppPrompt
+          forceOpen={showInstallPrompt}
+          onDismiss={() => setShowInstallPrompt(false)}
+          onInstallRequest={requestPwaInstall}
+        />
+      )}
 
       {loading && (
         <div className="overlay">

@@ -5,4 +5,5 @@
 export const FEATURES = {
   readingToolbar: true,
   officeReader: true,
+  defaultAppPrompt: true,
 };

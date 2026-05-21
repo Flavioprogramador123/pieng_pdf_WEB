@@ -1,5 +1,11 @@
 # Evolução: leitor PDF / Word / Excel
 
+## v31 — Leitor oficial (PWA)
+
+- Diálogo: tornar PIENG o leitor de PDF/Word/Excel
+- `manifest.webmanifest` + `file_handlers` + service worker
+- Ver **[LEITOR-OFICIAL.md](./LEITOR-OFICIAL.md)**
+
 ## O que foi adicionado (v28+)
 
 - **Modo leitura** com barra de ferramentas: zoom +/−, 100%, largura (PDF), girar ↺↻, páginas ‹›
