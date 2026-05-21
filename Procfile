@@ -1,1 +1,1 @@
-web: pip install -r requirements.txt && python src/main.py
+web: gunicorn main:app --chdir src --bind 0.0.0.0:$PORT --workers 1 --timeout 120

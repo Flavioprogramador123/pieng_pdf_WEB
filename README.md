@@ -4,7 +4,9 @@ Editor e leitor de PDF no navegador — versão web do **PIENG PDF Studio**.
 
 **Continuidade e histórico:** **[Resumo.md](./Resumo.md)** — tudo o que foi feito, links e melhorias futuras.
 
-**Publicar online:** veja o guia **[DEPLOY.md](./DEPLOY.md)** (GitHub + Netlify + API).
+**API offline no Netlify?** Siga **[RAILWAY.md](./RAILWAY.md)** (5 minutos).
+
+**Publicar online:** veja **[DEPLOY.md](./DEPLOY.md)** (GitHub + Netlify + API).
 ## Funcionalidades
 
 - Abrir em qualquer navegador (Chrome, Edge, Firefox)
