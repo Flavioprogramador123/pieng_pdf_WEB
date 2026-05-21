@@ -129,4 +129,4 @@ O Vercel redeploya automaticamente.
 | API offline no site | Aguarde o deploy; teste `/api/pdf/health` |
 | DOCX só texto | API não respondeu — use **→ DOCX** com health OK |
 | Erro 500 no DOCX | PDF muito grande; tente de novo ou use `run.bat` no PC |
-| Build falha | Veja logs Vercel; confirme `pip install -r requirements.txt` |
+| Build falha `pip install` | Apague Install Command no painel Vercel — ver **[VERCEL-CORRIGIR-BUILD.md](./VERCEL-CORRIGIR-BUILD.md)** |
