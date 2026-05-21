@@ -526,12 +526,16 @@ button.secondary {
 }
 
 .read-office-sheet-scroll {
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow: visible;
   background: #fff;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
   border-radius: 4px;
   transform-origin: top left;
+  will-change: transform;
+}
+
+.read-office--docx .read-office-inner {
+  will-change: transform;
 }
 
 .read-office-inner {

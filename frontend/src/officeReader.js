@@ -60,13 +60,15 @@ export function renderSheetFromBytes(bytes, sheetName) {
 
 export function applyOfficeTransform(hostEl, { zoom, rotation }) {
   if (!hostEl) return;
+  const isSheet = hostEl.classList.contains("reading-host--sheet");
   const target =
     hostEl.querySelector(".read-office-sheet-scroll") ||
     hostEl.querySelector(".read-office-inner");
-  if (target) {
-    target.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
-    target.style.transformOrigin = "top left";
-  }
+  if (!target) return;
+  const z = Number(zoom) || 1;
+  const rot = Number(rotation) || 0;
+  target.style.transform = `scale(${z}) rotate(${rot}deg)`;
+  target.style.transformOrigin = isSheet ? "top left" : "top center";
 }
 
 export function mountOfficeHtml(host, html, kind) {

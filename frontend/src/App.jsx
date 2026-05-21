@@ -36,7 +36,7 @@ import {
   renderSheetFromBytes,
 } from "./officeReader.js";
 import DefaultAppPrompt from "./DefaultAppPrompt.jsx";
-import ReadingToolbar, { nextZoom } from "./ReadingToolbar.jsx";
+import ReadingToolbar, { READ_ZOOM_DEFAULT, nextZoom } from "./ReadingToolbar.jsx";
 import { isInstalledPwa } from "./defaultApp.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
@@ -60,7 +60,7 @@ function App() {
   const [hideApiBanner, setHideApiBanner] = useState(
     () => sessionStorage.getItem("pieng-hide-api-banner") === "1"
   );
-  const [readZoom, setReadZoom] = useState(1.4);
+  const [readZoom, setReadZoom] = useState(READ_ZOOM_DEFAULT);
   const [readRotation, setReadRotation] = useState(0);
   const [readPageIdx, setReadPageIdx] = useState(0);
 
@@ -151,7 +151,9 @@ function App() {
     if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
       const office = officeStoreRef.current.get(activeDoc.file_id);
       if (!office) return;
-      mountOfficeHtml(host, office.previewHtml, activeDoc.kind);
+      if (!host.querySelector(".read-office-inner")) {
+        mountOfficeHtml(host, office.previewHtml, activeDoc.kind);
+      }
       applyOfficeTransform(host, { zoom: readZoom, rotation: readRotation });
       return;
     }
@@ -242,8 +244,6 @@ function App() {
     pages,
     currentIdx,
     readingMode,
-    readZoom,
-    readRotation,
     readPageIdx,
     tab,
     isPdfDoc,
@@ -253,12 +253,62 @@ function App() {
     paintReading,
   ]);
 
+  useEffect(() => {
+    if (!readingMode || !active || !pages.length || tab !== "editor" || !activeDoc) {
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const host = readRef.current;
+      if (!host) return;
+
+      if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
+        applyOfficeTransform(host, { zoom: readZoom, rotation: readRotation });
+        return;
+      }
+
+      if (!pdfRef.current) {
+        await loadPdfDoc(active);
+        if (cancelled) return;
+        await paintReading();
+        return;
+      }
+
+      const canvases = host.querySelectorAll(".read-page");
+      if (canvases.length !== pages.length) {
+        await paintReading();
+        return;
+      }
+
+      for (let i = 0; i < pages.length; i++) {
+        const rot = ((pages[i].rotation || 0) + readRotation) % 360;
+        await renderPage(pdfRef.current, pages[i].page, canvases[i], rot, readZoom);
+      }
+    })().catch((e) => {
+      if (!cancelled) setError(e.message);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    readZoom,
+    readRotation,
+    readingMode,
+    active,
+    activeDoc,
+    pages,
+    tab,
+    loadPdfDoc,
+    paintReading,
+  ]);
+
   const changeOfficeSheet = async (sheetName) => {
     const office = officeStoreRef.current.get(active);
     if (!office?.bytes) return;
     office.activeSheet = sheetName;
     office.previewHtml = renderSheetFromBytes(office.bytes, sheetName);
     officeStoreRef.current.set(active, office);
+    if (readRef.current) readRef.current.innerHTML = "";
     await paintReading();
   };
 
@@ -950,7 +1000,7 @@ function App() {
                 activeSheet={officeStoreRef.current.get(active)?.activeSheet}
                 onZoomIn={() => setReadZoom((z) => nextZoom(z, 1))}
                 onZoomOut={() => setReadZoom((z) => nextZoom(z, -1))}
-                onZoomReset={() => setReadZoom(1.4)}
+                onZoomReset={() => setReadZoom(READ_ZOOM_DEFAULT)}
                 onFitWidth={() => fitReadWidth().catch((e) => setError(e.message))}
                 onRotateLeft={() => setReadRotation((r) => (r - 90 + 360) % 360)}
                 onRotateRight={() => setReadRotation((r) => (r + 90) % 360)}

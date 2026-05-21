@@ -1,14 +1,16 @@
 import { FEATURES } from "./features/featureFlags.js";
 
-const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+export const READ_ZOOM_DEFAULT = 1;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const ZOOM_FACTOR = 1.2;
 
 export function nextZoom(current, dir) {
+  const z = Number(current) || READ_ZOOM_DEFAULT;
   if (dir > 0) {
-    const up = ZOOM_STEPS.find((z) => z > current + 0.01);
-    return up ?? current;
+    return Math.min(ZOOM_MAX, Math.round(z * ZOOM_FACTOR * 100) / 100);
   }
-  const down = [...ZOOM_STEPS].reverse().find((z) => z < current - 0.01);
-  return down ?? current;
+  return Math.max(ZOOM_MIN, Math.round((z / ZOOM_FACTOR) * 100) / 100);
 }
 
 export default function ReadingToolbar({
@@ -43,8 +45,8 @@ export default function ReadingToolbar({
         <button type="button" onClick={onZoomIn} title="Aumentar zoom">
           +
         </button>
-        <button type="button" onClick={onZoomReset} title="Zoom padrão">
-          100%
+        <button type="button" onClick={onZoomReset} title="Zoom padrão (100%)">
+          Padrão
         </button>
         {isPdf && (
           <button type="button" onClick={onFitWidth} title="Ajustar à largura">
