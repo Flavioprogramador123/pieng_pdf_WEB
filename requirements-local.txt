@@ -1,0 +1,4 @@
+# Só para PC local (run.bat). Na Vercel: api/requirements.txt (automático).
+-r api/requirements.txt
+gunicorn>=22.0.0
+pywin32>=306; sys_platform == "win32"

@@ -1,35 +1,52 @@
 # Corrigir erro: pip install -r requirements.txt
 
-A Vercel ainda está com o **Install Command antigo** salvo no painel (não no Git).
+## Erro no log
 
-## Passo a passo (obrigatório)
+```
+Running "install" command: `pip install -r requirements.txt`...
+error: externally-managed-environment
+```
 
-1. Abra [vercel.com](https://vercel.com) → projeto **pieng-pdf-web**
+## Causas (duas)
+
+1. **Painel Vercel** ainda tem Install Command antigo (`pip install...`).
+2. **Redeploy de commit antigo** — se o log mostra `Commit: 263cce7`, não é o `main` atual. Use **Redeploy** no último deploy de `main` ou faça **push** de novo.
+
+O `vercel.json` no Git já define:
+
+| Campo | Valor |
+|--------|--------|
+| **installCommand** | `cd frontend && npm install` |
+| **buildCommand** | `cd frontend && npm run build` |
+
+Python da API instala só na função serverless via **`api/requirements.txt`** (não há `requirements.txt` na raiz).
+
+---
+
+## Passo a passo no painel (obrigatório uma vez)
+
+1. [vercel.com](https://vercel.com) → projeto **pieng-pdf-web**
 2. **Settings** → **Build and Deployment**
-3. Em **Build & Development Settings**:
+3. **Build & Development Settings**:
 
-| Campo | Coloque exatamente |
-|--------|---------------------|
-| **Install Command** | *(apague tudo — deixe VAZIO)* ou `cd frontend && npm install` |
-| **Build Command** | `cd frontend && npm install && npm run build` |
+| Campo | Valor |
+|--------|--------|
+| **Install Command** | **Override** → `cd frontend && npm install` **ou apague tudo** |
+| **Build Command** | `cd frontend && npm run build` (ou deixe vazio para usar `vercel.json`) |
 | **Output Directory** | `src/static` |
 
-4. **Apague** qualquer texto `pip install -r requirements.txt`
+4. **Apague** `pip install -r requirements.txt`
 5. **Save**
-6. Aba **Deployments** → ⋯ no último → **Redeploy**
+6. **Deployments** → último deploy da branch **main** (commit recente, ex. `a0f1f20` ou mais novo) → **Redeploy**
 
-## Por que o erro acontece
+Não use “Redeploy” em um deploy antigo (263cce7) — isso repete o erro.
 
-O log mostra:
+---
+
+## Depois do build **Ready**
 
 ```
-Running "install" command: `pip install -r requirements.txt`
+https://pieng-pdf-web.vercel.app/api/pdf/health
 ```
 
-Isso vem da **configuração salva no site Vercel**, não do código atual do GitHub (já corrigido).
-
-Python da API instala sozinho via `api/requirements.txt` na função serverless.
-
-## Depois do build OK
-
-Teste: `https://pieng-pdf-web.vercel.app/api/pdf/health`
+Esperado: `{"ok":true,"service":"pieng-pdf-api"}`
