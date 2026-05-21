@@ -38,7 +38,7 @@ import {
   renderSheetFromBytes,
 } from "./officeReader.js";
 import DefaultAppPrompt from "./DefaultAppPrompt.jsx";
-import ReadingToolbar, { nextZoom } from "./ReadingToolbar.jsx";
+import ReadingToolbar, { READ_ZOOM_DEFAULT, nextZoom } from "./ReadingToolbar.jsx";
 import { isInstalledPwa } from "./defaultApp.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
@@ -62,7 +62,7 @@ function App() {
   const [hideApiBanner, setHideApiBanner] = useState(
     () => sessionStorage.getItem("pieng-hide-api-banner") === "1"
   );
-  const [readZoom, setReadZoom] = useState(1.4);
+  const [readZoom, setReadZoom] = useState(READ_ZOOM_DEFAULT);
   const [readRotation, setReadRotation] = useState(0);
   const [readPageIdx, setReadPageIdx] = useState(0);
 
@@ -195,15 +195,33 @@ function App() {
   };
 
   const fitReadWidth = useCallback(async () => {
-    const pdf = pdfRef.current;
     const host = readRef.current;
-    if (!pdf || !host || !pages.length) return;
+    if (!host || !activeDoc) return;
+    const w = Math.max(320, host.clientWidth - 48);
+
+    if (activeDoc.kind === DOC_KIND.DOCX) {
+      const section =
+        host.querySelector(".docx-wrapper > section.docx") ||
+        host.querySelector(".docx-wrapper");
+      const docW = section?.scrollWidth || section?.offsetWidth;
+      if (docW) setReadZoom(Math.min(3, Math.max(0.5, w / docW)));
+      return;
+    }
+
+    if (activeDoc.kind === DOC_KIND.XLS) {
+      const table = host.querySelector("#pieng-sheet-table");
+      const tableW = table?.scrollWidth || table?.offsetWidth;
+      if (tableW) setReadZoom(Math.min(3, Math.max(0.5, w / tableW)));
+      return;
+    }
+
+    const pdf = pdfRef.current;
+    if (!pdf || !pages.length) return;
     const slot = pages[readPageIdx] || pages[0];
     const page = await pdf.getPage(slot.page);
     const vp = page.getViewport({ scale: 1, rotation: readRotation });
-    const w = Math.max(320, host.clientWidth - 48);
     setReadZoom(Math.min(3, Math.max(0.5, w / vp.width)));
-  }, [pages, readPageIdx, readRotation]);
+  }, [activeDoc, pages, readPageIdx, readRotation]);
 
   const repaintViewer = useCallback(async () => {
     if (!active || !pages.length || tab !== "editor") return;
@@ -286,6 +304,7 @@ function App() {
     setCurrentIdx(0);
     setReadPageIdx(0);
     setReadRotation(0);
+    setReadZoom(READ_ZOOM_DEFAULT);
     setSelected(new Set());
     setError("");
     setTab("editor");

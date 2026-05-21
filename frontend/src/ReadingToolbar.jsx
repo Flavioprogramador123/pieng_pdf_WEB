@@ -1,5 +1,7 @@
 import { FEATURES } from "./features/featureFlags.js";
 
+export const READ_ZOOM_DEFAULT = 1;
+
 const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
 
 export function nextZoom(current, dir) {
@@ -46,11 +48,9 @@ export default function ReadingToolbar({
         <button type="button" onClick={onZoomReset} title="Zoom padrão">
           100%
         </button>
-        {isPdf && (
-          <button type="button" onClick={onFitWidth} title="Ajustar à largura">
-            Largura
-          </button>
-        )}
+        <button type="button" onClick={onFitWidth} title="Ajustar à largura">
+          Largura
+        </button>
       </div>
       <div className="reading-toolbar-group">
         <button type="button" onClick={onRotateLeft} title="Girar esquerda">

@@ -21,7 +21,7 @@ const DOCX_PREVIEW_OPTIONS = {
   ignoreFonts: false,
   breakPages: true,
   ignoreLastRenderedPageBreak: true,
-  experimental: true,
+  experimental: false,
   useBase64URL: true,
   renderHeaders: true,
   renderFooters: true,
@@ -49,7 +49,7 @@ export async function loadOfficeDocument(file) {
   if (kind === DOC_KIND.DOCX) {
     previewHtml = null;
   } else {
-    const wb = XLSX.read(bytes, { type: "array" });
+    const wb = XLSX.read(bytes, { type: "array", cellStyles: true });
     sheetNames = wb.SheetNames || [];
     if (!sheetNames.length) throw new Error("Planilha vazia.");
     previewHtml = sheetToHtml(wb, sheetNames[0]);
@@ -89,25 +89,45 @@ export function isDocxRenderedInHost(host, fileId) {
 function sheetToHtml(wb, sheetName) {
   const sheet = wb.Sheets[sheetName];
   if (!sheet) return "<p>Aba não encontrada.</p>";
-  const html = XLSX.utils.sheet_to_html(sheet, { id: "pieng-sheet-table" });
+  let html = XLSX.utils.sheet_to_html(sheet, { id: "pieng-sheet-table" });
+  const cols = sheet["!cols"];
+  if (cols?.length) {
+    const colgroup = cols
+      .map((col) => {
+        const px = col?.wpx ?? (col?.wch != null ? Math.round(col.wch * 7.5) : null);
+        return px ? `<col style="width:${px}px" />` : "<col />";
+      })
+      .join("");
+    html = html.replace(/<table([^>]*)>/i, `<table$1><colgroup>${colgroup}</colgroup>`);
+  }
   return `<div class="sheet-title">${escapeHtml(sheetName)}</div>${html}`;
 }
 
 export function renderSheetFromBytes(bytes, sheetName) {
-  const wb = XLSX.read(bytes, { type: "array" });
+  const wb = XLSX.read(bytes, { type: "array", cellStyles: true });
   return sheetToHtml(wb, sheetName);
 }
 
 export function applyOfficeTransform(hostEl, { zoom, rotation, kind }) {
   if (!hostEl) return;
   const target =
-    hostEl.querySelector(".read-office-sheet-scroll") ||
-    hostEl.querySelector(".read-office-inner");
-  if (target) {
-    target.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
-    target.style.transformOrigin =
-      kind === DOC_KIND.DOCX ? "top center" : "top left";
+    kind === DOC_KIND.DOCX
+      ? hostEl.querySelector(".read-office--docx")
+      : hostEl.querySelector(".read-office-sheet-scroll");
+  if (!target) return;
+  const origin = kind === DOC_KIND.DOCX ? "top center" : "top left";
+  const rot = rotation ? `rotate(${rotation}deg)` : "";
+  const supportsZoom =
+    typeof CSS !== "undefined" && CSS.supports?.("zoom", "1") === true;
+  if (supportsZoom) {
+    target.style.zoom = zoom !== 1 ? String(zoom) : "";
+    target.style.transform = rot || "";
+  } else {
+    target.style.zoom = "";
+    const scale = zoom !== 1 ? `scale(${zoom})` : "";
+    target.style.transform = [scale, rot].filter(Boolean).join(" ") || "";
   }
+  target.style.transformOrigin = origin;
 }
 
 export function mountOfficeHtml(host, html, kind) {

@@ -2,6 +2,13 @@
 
 Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
 
+## v37 — Layout Word/Excel fiel
+
+- Zoom padrão **100%** (antes 140% deformava o documento)
+- Estilos de tabela Excel **não** sobrescrevem mais o Word (docx-preview)
+- Word: largura real do `.docx`, scroll horizontal, imagens sem encolher
+- Zoom com `zoom` CSS em vez de `scale()`; botão Largura também em Office
+
 ## v36 — Conversão .doc no Windows
 
 - Procura LibreOffice em `C:\Program Files\LibreOffice\...`

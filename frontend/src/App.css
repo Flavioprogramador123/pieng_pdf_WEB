@@ -493,36 +493,51 @@ button.secondary {
   min-height: 0;
 }
 
-/* Word: faixa estreita tipo página (~A4) */
+/* Word: largura real do documento + scroll horizontal se preciso */
 .reading-host--docx,
 .reading-scroll:not(.reading-host--sheet) .read-office--docx {
-  align-items: center;
+  align-items: flex-start;
+}
+
+.reading-scroll:not(.reading-host--sheet) {
+  overflow-x: auto;
 }
 
 .read-office--docx {
-  width: 100%;
-  max-width: 900px;
-  display: flex;
-  justify-content: center;
+  width: max-content;
+  max-width: none;
+  min-width: min(100%, max-content);
+  display: block;
+  flex-shrink: 0;
 }
 
 .read-office--docx .read-office-inner {
-  transform-origin: top center;
-  max-width: 100%;
   padding: 0;
   overflow: visible;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
+  background: #fff;
 }
 
-/* docx-preview: layout próximo ao Word (imagens, cabeçalhos, páginas) */
-.read-office-inner .docx-wrapper {
+/* docx-preview: não sobrescrever estilos inline do Word */
+.read-office--docx .docx-wrapper {
   background: #fff;
-  padding: 1.25rem 1.5rem;
   box-sizing: border-box;
 }
 
-.read-office-inner .docx-wrapper img {
-  max-width: 100%;
+.read-office--docx .docx-wrapper section.docx {
+  width: auto !important;
+  max-width: none !important;
+}
+
+.read-office--docx .docx-wrapper img {
+  max-width: none;
   height: auto;
+}
+
+.read-office--docx .docx-wrapper table {
+  border-collapse: collapse;
+  font-size: inherit;
 }
 
 /* Excel: fundo branco acompanha toda a largura da tabela */
@@ -551,37 +566,36 @@ button.secondary {
 .read-office-inner {
   background: #fff;
   color: #111;
-  padding: 1.5rem 2rem;
-}
-
-.read-office--docx .read-office-inner {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-  border-radius: 4px;
 }
 
 .read-office--sheet .read-office-inner {
+  padding: 1rem 1.25rem;
   box-shadow: none;
   border-radius: 0;
   width: max-content;
   min-width: 100%;
 }
 
-.read-office-inner table {
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  background: #fff;
-}
-
+/* Excel: estilos só em planilhas — não aplicar às tabelas do Word (docx-preview) */
 .read-office--sheet .read-office-inner table {
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: #fff;
   width: max-content;
   min-width: 100%;
 }
 
-.read-office-inner td,
-.read-office-inner th {
-  border: 1px solid #ccc;
-  padding: 0.35rem 0.5rem;
+.read-office--sheet .read-office-inner td,
+.read-office--sheet .read-office-inner th {
+  border: 1px solid #d4d4d4;
+  padding: 0.25rem 0.5rem;
   background: #fff;
+  vertical-align: middle;
+}
+
+.read-office--sheet .read-office-inner th {
+  font-weight: 600;
+  background: #f3f4f6;
 }
 
 .read-office--sheet .read-office-inner td,
@@ -589,7 +603,7 @@ button.secondary {
   white-space: nowrap;
 }
 
-.read-office-inner .sheet-title {
+.read-office--sheet .read-office-inner .sheet-title {
   font-weight: 600;
   margin-bottom: 0.75rem;
   color: #333;
