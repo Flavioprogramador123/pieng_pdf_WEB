@@ -110,6 +110,7 @@ O Vercel redeploya automaticamente.
 | **DOCX** | Usa `pdf2docx` (Linux). No PC, `run.bat` pode usar **Microsoft Word** (melhor em formulários). |
 | **Tamanho** | Upload até ~50 MB |
 | **Tempo** | Conversão grande: até 60 s (plano Hobby) |
+| **Memória** | Máx. 2048 MB no Hobby (já configurado no `vercel.json`) |
 | **Arquivos** | Guardados em `/tmp` (podem sumir entre requisições) |
 
 ---
