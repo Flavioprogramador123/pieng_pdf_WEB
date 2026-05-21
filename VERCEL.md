@@ -26,7 +26,7 @@ Clique em **Deploy** ou expanda **Build and Output Settings** e confira:
 |--------|--------|
 | **Build Command** | `cd frontend && npm install && npm run build` |
 | **Output Directory** | `src/static` |
-| **Install Command** | `pip install -r requirements.txt` |
+| **Install Command** | `cd frontend && npm install` (sem `pip` — Python instala via `api/requirements.txt`) |
 
 O arquivo **`vercel.json`** na raiz aplica isso automaticamente. Se o Vercel sugerir **Flask**, mude para **Other** — senão o site React pode não buildar.
 
