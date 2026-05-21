@@ -79,6 +79,8 @@ function App() {
 
   readZoomRef.current = readZoom;
   readRotationRef.current = readRotation;
+  const readingModeRef = useRef(readingMode);
+  readingModeRef.current = readingMode;
 
   const activeDoc = docs.find((d) => d.file_id === active);
   const isPdfDoc = !activeDoc?.kind || activeDoc.kind === DOC_KIND.PDF;
@@ -131,6 +133,14 @@ function App() {
     [docViewUrl]
   );
 
+  const ensurePdfLoaded = useCallback(async () => {
+    if (!active || !isPdfDoc) return null;
+    if (!pdfRef.current) {
+      await loadPdfDoc(active);
+    }
+    return pdfRef.current;
+  }, [active, isPdfDoc, loadPdfDoc]);
+
   const paintMain = useCallback(async () => {
     const pdf = pdfRef.current;
     const canvas = canvasRef.current;
@@ -151,7 +161,11 @@ function App() {
   }, [pages]);
 
   const paintReading = useCallback(async () => {
-    const host = readRef.current;
+    let host = readRef.current;
+    if (!host) {
+      await new Promise((r) => requestAnimationFrame(r));
+      host = readRef.current;
+    }
     if (!host || !activeDoc) return;
 
     if (activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
@@ -167,8 +181,17 @@ function App() {
       return;
     }
 
-    const pdf = pdfRef.current;
-    if (!pdf) return;
+    let pdf;
+    try {
+      pdf = await ensurePdfLoaded();
+    } catch (e) {
+      setError(e.message);
+      return;
+    }
+    if (!pdf) {
+      host.innerHTML = '<p class="read-placeholder">Selecione um PDF em Arquivos.</p>';
+      return;
+    }
     host.classList.remove("reading-host--sheet", "reading-host--docx");
     host.classList.add("reading-host--pdf");
     host.innerHTML = "";
@@ -181,7 +204,37 @@ function App() {
     host.appendChild(c);
     const rot = ((slot.rotation || 0) + readRotationRef.current) % 360;
     await renderPage(pdf, slot.page, c, rot, readZoomRef.current);
-  }, [pages, readPageIdx, activeDoc, active]);
+  }, [pages, readPageIdx, activeDoc, active, ensurePdfLoaded]);
+
+  const refreshReadingPdfPage = useCallback(async () => {
+    const host = readRef.current;
+    if (!host || !pages.length || !activeDoc || activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
+      return;
+    }
+    let pdf;
+    try {
+      pdf = await ensurePdfLoaded();
+    } catch (e) {
+      setError(e.message);
+      return;
+    }
+    if (!pdf) return;
+    const idx = Math.min(Math.max(0, readPageIdx), pages.length - 1);
+    const slot = pages[idx];
+    host.classList.add("reading-host--pdf");
+    host.classList.remove("reading-host--sheet", "reading-host--docx");
+
+    let canvas = host.querySelector(".read-page");
+    if (!canvas || canvas.dataset.pageIndex !== String(idx)) {
+      host.innerHTML = "";
+      canvas = document.createElement("canvas");
+      canvas.className = "read-page";
+      canvas.dataset.pageIndex = String(idx);
+      host.appendChild(canvas);
+    }
+    const rot = ((slot.rotation || 0) + readRotationRef.current) % 360;
+    await renderPage(pdf, slot.page, canvas, rot, readZoomRef.current);
+  }, [pages, readPageIdx, activeDoc, ensurePdfLoaded]);
 
   const fitReadWidth = useCallback(async () => {
     const pdf = pdfRef.current;
@@ -253,7 +306,7 @@ function App() {
   ]);
 
   useEffect(() => {
-    if (!readingMode || !active || !pages.length || tab !== "editor" || !activeDoc) {
+    if (!readingModeRef.current || !active || !pages.length || tab !== "editor" || !activeDoc) {
       return;
     }
 
@@ -266,22 +319,21 @@ function App() {
     }
 
     clearTimeout(zoomPaintTimerRef.current);
+    let cancelled = false;
     zoomPaintTimerRef.current = setTimeout(() => {
-      refreshReadingPdfPage().catch((e) => setError(e.message));
+      (async () => {
+        if (cancelled) return;
+        await refreshReadingPdfPage();
+      })().catch((e) => {
+        if (!cancelled) setError(e.message);
+      });
     }, 120);
 
     return () => {
-      if (zoomPaintTimerRef.current) clearTimeout(zoomPaintTimerRef.current);
+      cancelled = true;
+      clearTimeout(zoomPaintTimerRef.current);
     };
-  }, [
-    readZoom,
-    readRotation,
-    readingMode,
-    active,
-    activeDoc,
-    tab,
-    refreshReadingPdfPage,
-  ]);
+  }, [readZoom, readRotation, active, activeDoc, tab, refreshReadingPdfPage]);
 
   const changeOfficeSheet = async (sheetName) => {
     const office = officeStoreRef.current.get(active);
@@ -315,29 +367,6 @@ function App() {
       setReadingMode(true);
     }
   };
-
-  const refreshReadingPdfPage = useCallback(async () => {
-    const host = readRef.current;
-    const pdf = pdfRef.current;
-    if (!host || !pdf || !pages.length || !activeDoc || activeDoc.kind === DOC_KIND.DOCX || activeDoc.kind === DOC_KIND.XLS) {
-      return;
-    }
-    const idx = Math.min(Math.max(0, readPageIdx), pages.length - 1);
-    const slot = pages[idx];
-    host.classList.add("reading-host--pdf");
-    host.classList.remove("reading-host--sheet", "reading-host--docx");
-
-    let canvas = host.querySelector(".read-page");
-    if (!canvas || canvas.dataset.pageIndex !== String(idx)) {
-      host.innerHTML = "";
-      canvas = document.createElement("canvas");
-      canvas.className = "read-page";
-      canvas.dataset.pageIndex = String(idx);
-      host.appendChild(canvas);
-    }
-    const rot = ((slot.rotation || 0) + readRotationRef.current) % 360;
-    await renderPage(pdf, slot.page, canvas, rot, readZoomRef.current);
-  }, [pages, readPageIdx, activeDoc]);
 
   const removeDoc = (fileId, e) => {
     e?.preventDefault?.();
