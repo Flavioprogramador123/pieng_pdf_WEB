@@ -1,123 +1,111 @@
-# Usar Vercel (alternativa ao Netlify)
+# Deploy no Vercel (site + API)
 
-Você **não precisa abandonar** o Netlify. Vercel e Netlify fazem a **mesma função** neste projeto: hospedar o **site (React)**.
+Tudo em **um único projeto Vercel**: interface React e API Flask (`/api/pdf/...`).
 
-A **API Python (Flask)** continua no **Railway** ou **Render** — o Vercel não substitui o Railway para processar PDF.
-
-```
-┌─────────────┐     /api/*      ┌──────────────┐
-│  Netlify    │ ──────────────► │   Railway    │
-│  ou Vercel  │    (proxy)      │   (Flask)    │
-│  (só site)  │                 │              │
-└─────────────┘                 └──────────────┘
-```
+Não é necessário Railway, Netlify nem Render para produção.
 
 ---
 
-## Quando usar Vercel
-
-| Situação | Sugestão |
-|----------|----------|
-| Netlify com problema de build/deploy | Tente **Vercel** com o mesmo repo |
-| Já tem conta/plano Vercel | Pode usar Vercel para o front |
-| Quer tudo em um painel só | Front no Vercel + API no Railway (dois serviços) |
-
-**Não é:** “Netlify falhou → mudar API para Vercel”. A API em Python pesada fica melhor no Railway/Render.
-
----
-
-## Deploy do site no Vercel (passo a passo)
-
-### 1. Importar projeto
+## 1. Conectar o repositório
 
 1. [vercel.com](https://vercel.com) → **Add New** → **Project**
-2. Importe **`Flavioprogramador123/pieng_pdf_WEB`** (GitHub)
-3. O Vercel lê o arquivo **`vercel.json`** na raiz
-
-### 2. Configuração (confira na tela)
+2. Importe **`Flavioprogramador123/pieng_pdf_WEB`**
+3. O Vercel lê **`vercel.json`** automaticamente
 
 | Campo | Valor |
 |--------|--------|
-| **Framework Preset** | Other |
-| **Build Command** | `cd frontend && npm install && npm run build` |
-| **Output Directory** | `src/static` |
-| **Install Command** | *(pode deixar vazio ou `cd frontend && npm install`)* |
+| Framework | Other |
+| Build Command | `cd frontend && npm install && npm run build` |
+| Output Directory | `src/static` |
+| Install Command | `pip install -r requirements.txt` |
 
-### 3. Variáveis de ambiente (opcional)
+4. **Deploy**
 
-Só se **não** usar o proxy no `vercel.json`:
+URL exemplo: `https://pieng-pdf-web.vercel.app`
 
-| Nome | Valor |
-|------|--------|
-| `VITE_API_URL` | `https://sua-api.up.railway.app` |
+---
 
-Com o proxy em `vercel.json`, **não precisa** dessa variável.
+## 2. Testar API
 
-### 4. Deploy
+Abra no navegador:
 
-Clique **Deploy**. URL exemplo: `https://pieng-pdf-web.vercel.app`
-
-### 5. Ligar a API (igual ao Netlify)
-
-1. Suba a API no **Railway** — veja **[RAILWAY.md](./RAILWAY.md)**
-2. Edite **`vercel.json`** na raiz:
-
-```json
-{
-  "source": "/api/(.*)",
-  "destination": "https://SUA-URL.up.railway.app/api/$1"
-}
+```
+https://SEU-SITE.vercel.app/api/pdf/health
 ```
 
-3. Commit + push → Vercel redeploya
+Resposta esperada:
 
-Teste: `https://seu-site.vercel.app/api/pdf/health` → `{"ok":true,...}`
-
----
-
-## Netlify vs Vercel (só frontend)
-
-| | Netlify | Vercel |
-|---|---------|--------|
-| Arquivo de config | `netlify.toml` | `vercel.json` |
-| Pasta publicada | `src/static` | `src/static` |
-| Proxy `/api` | `[[redirects]]` | `rewrites` |
-| Modo local sem API | ✅ | ✅ |
-| API Flask no mesmo host | ❌ | ❌ (use Railway) |
-
-Pode manter **os dois** apontando para a **mesma API Railway** (dois frontends, uma API).
+```json
+{"ok": true, "service": "pieng-pdf-api"}
+```
 
 ---
 
-## API direto no Vercel?
+## 3. Usar o app
 
-Possível em teoria (Serverless Functions Python), mas para este projeto **não recomendamos**:
-
-- limite de tamanho/tempo em funções serverless
-- upload grande de PDF
-- `pdf2docx` e dependências pesadas
-- disco temporário limitado
-
-Se Railway não der certo, use **Render** ([`render.yaml`](./render.yaml)) antes de tentar API no Vercel.
+1. Abra o site Vercel (não precisa de `localhost` nem Netlify).
+2. Envie o PDF.
+3. **→ DOCX** usa `pdf2docx` na API Vercel (tabelas e logos, quando o PDF permitir).
+4. A faixa amarela **“API offline”** deve **sumir** após o deploy correto.
 
 ---
 
-## Ordem sugerida se algo falhar
+## 4. Desenvolvimento local
 
-1. **Netlify** (já em uso) + **Railway** (API)  
-2. Se Netlify incomodar → **Vercel** (site) + **mesma API Railway**  
-3. Se Railway incomodar → **Render** (API) + Netlify ou Vercel  
-4. **PC local:** `run.bat` → http://localhost:5001  
+**Opção A — tudo local (recomendado para testar DOCX com Word):**
 
----
+```powershell
+E:\Projetos\pieng_pdf_WEB\run.bat
+```
 
-## Comandos úteis (CLI Vercel)
+→ http://localhost:5001
+
+**Opção B — Vercel CLI:**
 
 ```powershell
 npm i -g vercel
 cd E:\Projetos\pieng_pdf_WEB
 vercel login
-vercel --prod
+vercel dev
 ```
 
-O `vercel.json` na raiz já define build e rewrites.
+---
+
+## 5. Atualizar o projeto
+
+```powershell
+git add .
+git commit -m "sua alteração"
+git push
+```
+
+O Vercel redeploya automaticamente.
+
+---
+
+## Limitações na Vercel
+
+| Item | Detalhe |
+|------|---------|
+| **DOCX** | Usa `pdf2docx` (Linux). No PC, `run.bat` pode usar **Microsoft Word** (melhor em formulários). |
+| **Tamanho** | Upload até ~50 MB |
+| **Tempo** | Conversão grande: até 60 s (plano Hobby) |
+| **Arquivos** | Guardados em `/tmp` (podem sumir entre requisições) |
+
+---
+
+## Netlify / Railway
+
+- **Netlify** e **Railway** não são mais necessários para este projeto.
+- Arquivos antigos: `netlify.toml`, `railway.toml` → pasta `obsoleto/` (referência).
+
+---
+
+## Problemas
+
+| Sintoma | Solução |
+|---------|---------|
+| API offline no site | Aguarde o deploy; teste `/api/pdf/health` |
+| DOCX só texto | API não respondeu — use **→ DOCX** com health OK |
+| Erro 500 no DOCX | PDF muito grande; tente de novo ou use `run.bat` no PC |
+| Build falha | Veja logs Vercel; confirme `pip install -r requirements.txt` |

@@ -2,13 +2,16 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "src/static",
+  "installCommand": "pip install -r requirements.txt",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "memory": 3008
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://SUBSTITUA-SUA-API.up.railway.app/api/$1"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],

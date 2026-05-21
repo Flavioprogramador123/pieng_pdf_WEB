@@ -224,7 +224,7 @@ function App() {
           setHint(
             apiOk
               ? "PDF carregado localmente."
-              : "Modo local: PDF processado no seu dispositivo (Netlify sem API ou servidor parado)."
+              : "Modo local: PDF no seu dispositivo (API Vercel indisponível ou deploy pendente)."
           );
         }
         setDocs((d) => [...d, doc]);
@@ -467,7 +467,7 @@ function App() {
 
       if (!apiOk) {
         setError(
-          "DOCX com tabelas e logos exige a API no servidor. No PC: execute run.bat e abra http://localhost:5001. Na nuvem: configure Railway (RAILWAY.md). O site Netlify sozinho não converte layout."
+          "DOCX com tabelas e logos exige a API. Use o site Vercel (VERCEL.md) ou run.bat → http://localhost:5001 no PC."
         );
         return;
       }
@@ -505,7 +505,7 @@ function App() {
       const sections = await extractPageTexts(pdfRef.current, pages);
       const name = await downloadSimpleDocx(activeDoc.filename, sections);
       setHint(
-        `${name} — apenas texto, sem tabelas/logos. Para DOCX igual ao PDF use → DOCX com API (run.bat ou Railway).`
+        `${name} — apenas texto. Para DOCX com layout use → DOCX no Vercel ou run.bat no PC.`
       );
     } catch (e) {
       setError(e.message);
@@ -636,10 +636,10 @@ function App() {
           {apiOnline === false && !hideApiBanner && (
             <div className="api-banner" role="status">
               <p>
-                <strong>Modo local ativo</strong> — você pode abrir e editar PDFs normalmente.
-                DOCX e salvamento na nuvem: configure a API no{" "}
-                <a href="https://github.com/Flavioprogramador123/pieng_pdf_WEB/blob/main/RAILWAY.md" target="_blank" rel="noreferrer">
-                  Railway
+                <strong>Modo local ativo</strong> — PDFs abrem no navegador.
+                DOCX completo: confira o deploy na{" "}
+                <a href="https://github.com/Flavioprogramador123/pieng_pdf_WEB/blob/main/VERCEL.md" target="_blank" rel="noreferrer">
+                  Vercel
                 </a>{" "}
                 ou use <code>run.bat</code> em <code>localhost:5001</code>.
               </p>
@@ -707,7 +707,7 @@ function App() {
                 <button
                   type="button"
                   onClick={doExportDocx}
-                  title="DOCX completo (tabelas, logos) — requer API: run.bat ou Railway"
+                  title="DOCX completo (tabelas, logos) — API Vercel ou run.bat no PC"
                 >
                   → DOCX
                 </button>
