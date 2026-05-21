@@ -747,8 +747,9 @@ function App() {
                   type="button"
                   className="doc-open"
                   onClick={() => openDoc(d, d.pages)}
+                  title={d.filename}
                 >
-                  {d.filename}
+                  <span className="doc-name">{d.filename}</span>
                   <small>{d.num_pages} pág.</small>
                 </button>
                 <div className="doc-actions">
