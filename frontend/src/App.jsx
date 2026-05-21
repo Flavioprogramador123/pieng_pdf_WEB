@@ -20,6 +20,7 @@ import {
   mergeBytesList,
   revokeStore,
 } from "./localPdf.js";
+import { BUILD_LABEL } from "./buildVersion.js";
 import { downloadSimpleDocx, extractPageTexts } from "./docxExport.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
@@ -181,6 +182,36 @@ function App() {
     setSelected(new Set());
     setError("");
     setTab("editor");
+  };
+
+  const removeDoc = (fileId, e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    const doc = docs.find((d) => d.file_id === fileId);
+    if (!doc) return;
+    if (doc.source === "local") {
+      revokeStore(localStoreRef.current.get(fileId));
+      localStoreRef.current.delete(fileId);
+    }
+    setMergeIds((m) => {
+      const n = new Set(m);
+      n.delete(fileId);
+      return n;
+    });
+    const remaining = docs.filter((d) => d.file_id !== fileId);
+    setDocs(remaining);
+    if (active === fileId) {
+      pdfRef.current = null;
+      if (remaining.length) {
+        openDoc(remaining[0], remaining[0].pages);
+      } else {
+        setActive(null);
+        setPages([]);
+        setCurrentIdx(0);
+        setSelected(new Set());
+      }
+    }
+    setHint(`"${doc.filename}" removido da lista.`);
   };
 
   const registerLocalDoc = (loaded) => {
@@ -561,13 +592,18 @@ function App() {
             <span className="brand-sub">Manipulação de PDF no navegador</span>
           </div>
         </div>
-        <div className="top-actions">
-          <button type="button" onClick={() => setReadingMode((r) => !r)}>
-            {readingMode ? "Modo editor" : "Modo leitura"}
-          </button>
-          <button type="button" className="primary" onClick={saveChanges} disabled={!active}>
-            Salvar alterações
-          </button>
+        <div className="topbar-end">
+          <div className="top-actions">
+            <button type="button" onClick={() => setReadingMode((r) => !r)}>
+              {readingMode ? "Modo editor" : "Modo leitura"}
+            </button>
+            <button type="button" className="primary" onClick={saveChanges} disabled={!active}>
+              Salvar alterações
+            </button>
+          </div>
+          <span className="build-tag" title={`Build ${BUILD_LABEL}`}>
+            {BUILD_LABEL}
+          </span>
         </div>
       </header>
 
@@ -601,28 +637,40 @@ function App() {
                   {d.filename}
                   <small>{d.num_pages} pág.</small>
                 </button>
-                <label className="merge-check" title="Incluir no merge">
-                  <input
-                    type="checkbox"
-                    checked={mergeIds.has(d.file_id)}
-                    onChange={(e) => {
-                      setMergeIds((m) => {
-                        const n = new Set(m);
-                        if (e.target.checked) n.add(d.file_id);
-                        else n.delete(d.file_id);
-                        return n;
-                      });
-                    }}
-                  />
-                </label>
-                <a
-                  href={d.source === "local" ? d.viewUrl : downloadUrl(d.file_id)}
-                  download={d.filename}
-                  className="icon-btn"
-                  title="Download"
-                >
-                  ↓
-                </a>
+                <div className="doc-actions">
+                  <label className="merge-check" title="Incluir no merge">
+                    <input
+                      type="checkbox"
+                      checked={mergeIds.has(d.file_id)}
+                      onChange={(e) => {
+                        setMergeIds((m) => {
+                          const n = new Set(m);
+                          if (e.target.checked) n.add(d.file_id);
+                          else n.delete(d.file_id);
+                          return n;
+                        });
+                      }}
+                    />
+                  </label>
+                  <a
+                    href={d.source === "local" ? d.viewUrl : downloadUrl(d.file_id)}
+                    download={d.filename}
+                    className="icon-btn"
+                    title="Download"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    ↓
+                  </a>
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn-remove"
+                    title="Remover da lista"
+                    aria-label="Remover"
+                    onClick={(e) => removeDoc(d.file_id, e)}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             ))}
           </div>
