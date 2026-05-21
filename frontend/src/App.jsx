@@ -19,6 +19,7 @@ import {
   mergeBytesList,
   revokeStore,
 } from "./localPdf.js";
+import { downloadSimpleDocx, extractPageTexts } from "./docxExport.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
 /** Logo oficial (preto) — mesmo arquivo em header, sidebar e tela central */
@@ -443,6 +444,46 @@ function App() {
     }
   };
 
+  const doExportDocx = async () => {
+    if (!active || !activeDoc || !pages.length) return;
+    setLoading(true);
+    setError("");
+    try {
+      const apiOk = apiOnline === true ? true : await checkApiHealth();
+      setApiOnline(apiOk);
+
+      if (activeDoc.source === "api" && apiOk) {
+        await downloadDocx(active, activeDoc.filename);
+        setHint("DOCX gerado no servidor (melhor fidelidade ao PDF).");
+        return;
+      }
+
+      if (apiOk) {
+        const store = localStoreRef.current.get(active);
+        if (store) {
+          const bytes = await buildPdfBytes(store.bytes, pages);
+          const fn = activeDoc.filename || "documento.pdf";
+          const file = new File([bytes], fn, { type: "application/pdf" });
+          const up = await uploadPdf(file);
+          await downloadDocx(up.file_id, fn);
+          setHint("DOCX gerado pela API a partir do PDF editado.");
+          return;
+        }
+      }
+
+      if (!pdfRef.current) await loadPdfDoc(active);
+      const sections = await extractPageTexts(pdfRef.current, pages);
+      const name = await downloadSimpleDocx(activeDoc.filename, sections);
+      setHint(
+        `Arquivo ${name} criado (texto). Para DOCX com layout do PDF, use API Railway ou run.bat no PC.`
+      );
+    } catch (e) {
+      setError(e.message || "Falha ao gerar DOCX");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const doExtractText = async () => {
     if (!active) return;
     setLoading(true);
@@ -633,16 +674,7 @@ function App() {
                   Copiar
                 </button>
                 <button type="button" onClick={doSplit}>Dividir</button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (activeDoc?.source === "local") {
-                      setError("DOCX requer API no servidor (Railway/Render) ou run.bat no PC.");
-                      return;
-                    }
-                    downloadDocx(active, activeDoc.filename).catch((e) => setError(e.message));
-                  }}
-                >
+                <button type="button" onClick={doExportDocx} title="DOCX: API completa ou exportação de texto no navegador">
                   → DOCX
                 </button>
                 <button type="button" onClick={doExtractText}>Extrair texto</button>
