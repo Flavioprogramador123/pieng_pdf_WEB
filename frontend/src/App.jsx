@@ -38,6 +38,9 @@ function App() {
   const [tab, setTab] = useState("editor");
   const [hint, setHint] = useState("");
   const [apiOnline, setApiOnline] = useState(null);
+  const [hideApiBanner, setHideApiBanner] = useState(
+    () => sessionStorage.getItem("pieng-hide-api-banner") === "1"
+  );
 
   const canvasRef = useRef(null);
   const readRef = useRef(null);
@@ -56,8 +59,16 @@ function App() {
   );
 
   useEffect(() => {
-    checkApiHealth().then(setApiOnline);
+    checkApiHealth().then((ok) => {
+      setApiOnline(ok);
+      if (ok) setHideApiBanner(true);
+    });
   }, []);
+
+  const dismissApiBanner = () => {
+    sessionStorage.setItem("pieng-hide-api-banner", "1");
+    setHideApiBanner(true);
+  };
 
   const loadPdfDoc = useCallback(
     async (fileId) => {
@@ -551,10 +562,19 @@ function App() {
         </aside>
 
         <main className="workspace">
-          {apiOnline === false && (
-            <div className="api-banner">
-              API offline — PDFs abrem no modo local (PC e celular). Para DOCX e nuvem, suba a API
-              (Railway) ou execute <code>run.bat</code> e acesse localhost:5001.
+          {apiOnline === false && !hideApiBanner && (
+            <div className="api-banner" role="status">
+              <p>
+                <strong>Modo local ativo</strong> — você pode abrir e editar PDFs normalmente.
+                DOCX e salvamento na nuvem: configure a API no{" "}
+                <a href="https://github.com/Flavioprogramador123/pieng_pdf_WEB/blob/main/RAILWAY.md" target="_blank" rel="noreferrer">
+                  Railway
+                </a>{" "}
+                ou use <code>run.bat</code> em <code>localhost:5001</code>.
+              </p>
+              <button type="button" className="api-banner-close" onClick={dismissApiBanner} title="Ocultar">
+                ×
+              </button>
             </div>
           )}
           {error && <div className="error-bar">{error}</div>}
