@@ -13,13 +13,27 @@ from flask import Flask
 from flask_cors import CORS
 from routes.pdf import pdf_bp
 
-# Vercel: index.py em /api + routes → Flask vê /pdf/health → URL /api/pdf/health
-# Local: run.bat → /api/pdf/health
-_api_prefix = "/pdf" if os.environ.get("VERCEL") else "/api/pdf"
-
 application = Flask(__name__)
 application.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 CORS(application)
-application.register_blueprint(pdf_bp, url_prefix=_api_prefix)
+application.register_blueprint(pdf_bp, url_prefix="/api/pdf")
+
+
+class _ApiPdfPathNormalizer:
+    """Vercel pode enviar /pdf/... ou /api/pdf/... — unifica para o blueprint."""
+
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        path = environ.get("PATH_INFO") or ""
+        if path.startswith("/pdf/") or path == "/pdf":
+            environ["PATH_INFO"] = "/api" + path
+        elif path.startswith("/health"):
+            environ["PATH_INFO"] = "/api/pdf" + path
+        return self.app(environ, start_response)
+
+
+application.wsgi_app = _ApiPdfPathNormalizer(application.wsgi_app)
 
 app = application

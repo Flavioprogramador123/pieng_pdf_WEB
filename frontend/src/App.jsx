@@ -488,6 +488,13 @@ function App() {
     return buildPdfBytes(store.bytes, pages);
   };
 
+  const exportSimpleDocx = async () => {
+    if (!pdfRef.current) await loadPdfDoc(active);
+    const sections = await extractPageTexts(pdfRef.current, pages);
+    const name = await downloadSimpleDocx(activeDoc.filename, sections);
+    return name;
+  };
+
   const doExportDocx = async () => {
     if (!active || !activeDoc || !pages.length) return;
     setLoading(true);
@@ -496,30 +503,28 @@ function App() {
       const apiOk = apiOnline === true ? true : await checkApiHealth();
       setApiOnline(apiOk);
 
-      if (!apiOk) {
-        setError(
-          "DOCX com tabelas e logos exige a API. Use o site Vercel (VERCEL.md) ou run.bat → http://localhost:5001 no PC."
-        );
-        return;
+      if (apiOk) {
+        if (activeDoc.source === "api") {
+          await downloadDocx(active, activeDoc.filename);
+          setHint("DOCX completo — tabelas, logos e layout preservados.");
+          return;
+        }
+        const store = localStoreRef.current.get(active);
+        if (store) {
+          const bytes = await pdfBytesForDocx();
+          const fn = activeDoc.filename || "documento.pdf";
+          const file = new File([bytes], fn, { type: "application/pdf" });
+          await convertPdfFileToDocx(file);
+          setHint("DOCX completo — tabelas, logos e layout preservados.");
+          return;
+        }
+        throw new Error("Arquivo não encontrado para conversão.");
       }
 
-      if (activeDoc.source === "api") {
-        await downloadDocx(active, activeDoc.filename);
-        setHint("DOCX completo — tabelas, logos e layout preservados.");
-        return;
-      }
-
-      const store = localStoreRef.current.get(active);
-      if (store) {
-        const bytes = await pdfBytesForDocx();
-        const fn = activeDoc.filename || "documento.pdf";
-        const file = new File([bytes], fn, { type: "application/pdf" });
-        await convertPdfFileToDocx(file);
-        setHint("DOCX completo — tabelas, logos e layout preservados.");
-        return;
-      }
-
-      throw new Error("Arquivo não encontrado para conversão.");
+      const name = await exportSimpleDocx();
+      setHint(
+        `${name} — DOCX editável (texto por página). API offline: sem tabelas/logos do PDF.`
+      );
     } catch (e) {
       setError(e.message || "Falha ao gerar DOCX");
     } finally {
@@ -532,12 +537,8 @@ function App() {
     setLoading(true);
     setError("");
     try {
-      if (!pdfRef.current) await loadPdfDoc(active);
-      const sections = await extractPageTexts(pdfRef.current, pages);
-      const name = await downloadSimpleDocx(activeDoc.filename, sections);
-      setHint(
-        `${name} — apenas texto. Para DOCX com layout use → DOCX no Vercel ou run.bat no PC.`
-      );
+      const name = await exportSimpleDocx();
+      setHint(`${name} — DOCX simples (somente texto extraído do PDF).`);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -755,7 +756,7 @@ function App() {
                 <button
                   type="button"
                   onClick={doExportDocx}
-                  title="DOCX completo (tabelas, logos) — API Vercel ou run.bat no PC"
+                  title="DOCX editável — API completa se online; senão texto no navegador"
                 >
                   → DOCX
                 </button>
