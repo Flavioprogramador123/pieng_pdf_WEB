@@ -1,85 +1,77 @@
 # Relatório de finalização — PIENG PDF Web (leitor)
 
-**Data:** 21/05/2026  
+**Data de fecho:** maio/2026  
 **Produção:** https://pieng-pdf-web.vercel.app  
 **Repositório:** https://github.com/Flavioprogramador123/pieng_pdf_WEB  
-**Versão em produção (código):** **v39** (`BUILD_SEQ = 39`, commit `ade1827`)  
-**Base estável de referência:** **v32** (`85d8606`)
+**Versão em produção:** **v45** (`BUILD_SEQ = 45`, commit `89c65c6`)  
+**Decisão:** **manter o sistema como está** — sem novas evoluções do leitor salvo correção crítica.
 
 ---
 
-## 1. Objetivo da sessão
+## 1. Objetivo alcançado
 
-Recuperar estabilidade após problemas de zoom/tela preta (v33–v38), restaurar base **v32**, evoluir **aos poucos** com foco em:
+Substituto web do fluxo PIENG/Adobe para leitura e edição leve:
 
-- Leitura **Word** (.docx) fiel (logos, layout)
-- Leitura **Excel** (.xlsx) fiel no **mobile** (prioridade do negócio)
-- Não prejudicar PDF, API, PWA e deploy Vercel
-
----
-
-## 2. Linha do tempo (resumo)
-
-| Versão | Commit | O que foi feito |
-|--------|--------|-----------------|
-| **Restauração v32** | `91c56eb` | Código voltou ao estado `85d8606` (Excel fundo branco largo) |
-| **v33** | `6424051` | `.doc` vs `.docx` — mensagens e MIME no telemóvel |
-| **v34** | `c55e896` | **docx-preview** — Word com imagens/logos (substitui Mammoth no preview) |
-| **v35** | `a23f844` | API `/convert-legacy-doc` para `.doc` (Word/LibreOffice no PC) |
-| **v36** | `ddf7746` | LibreOffice em Program Files + Word via PowerShell |
-| **v37** | `f9e942d` | Zoom 100%, CSS Word/Excel separado, docx sem tabela HTML por cima |
-| **v38** | `3ff6cb8` | **Fortune Sheet** para Excel + flag `excelHtmlFallback` |
-| **v39** | `ade1827` | Ajuste fino linhas/colunas Fortune Sheet (texto menos cortado) |
-
-**Commits v36–v38 (tela preta / TDZ / index)** existem no histórico mas foram **revertidos** com o restore v32; correções equivalentes foram reintroduzidas de forma incremental (v37–v39).
+- **PDF** no browser (PDF.js + editor)
+- **Word `.docx`** com layout e imagens (docx-preview)
+- **Excel** no mobile com Fortune Sheet
+- **PWA** para abrir ficheiros no Android (limitações iOS documentadas)
+- Deploy unificado na **Vercel** (frontend + API serverless)
 
 ---
 
-## 3. Estado final aceite pelo utilizador
+## 2. Linha do tempo (v32 → v45)
 
-### Funciona bem (manter)
-
-| Formato | Mobile | PC / Web |
-|---------|--------|----------|
-| **.docx** | Ok (v34+) | Ok — docx-preview |
-| **.xlsx** | Ok (~98–100%) — Fortune Sheet v38/v39; scroll vertical para ler | Pequena deformação visual aceite; **não bloqueia** — prioridade é mobile |
-| **.pdf** | Modo leitura + editor (base v32+) | Idem |
-| **PWA / upload / API** | Operacional | Idem |
-
-### Aceite / adiado
-
-- **Deformação leve .xlsx no PC** — fica como está; amanhã ou futuro: vista tipo PDF/imagem só no desktop (LibreOffice → PDF + PDF.js).
-- **Zoom** — precisa **revisão com calma** (foi a origem de regressões desde v33+). **Não alterar hoje.**
-- **.doc na Vercel** — sem LibreOffice no servidor; converter para `.docx` ou usar `run.bat` no PC.
+| Versão | Commit (ref.) | Tema |
+|--------|---------------|------|
+| v32 | `85d8606` | Base estável (Excel fundo branco, leitor v27+) |
+| v33–v34 | `6424051`, `c55e896` | MIME mobile; **docx-preview** |
+| v35–v36 | `a23f844`, `ddf7746` | API `.doc` → `.docx` (PC) |
+| v37–v39 | `f9e942d` … `ade1827` | Zoom 100%; Fortune Sheet + ajuste finhas |
+| v40 | `66f1260` | PWA `file_handlers` + `fileLaunch.js` |
+| v41–v45 | `89c65c6` | Zoom PDF seguro; docx A4; `newFileId`; mensagem sem `.doc` |
 
 ---
 
-## 4. Problemas conhecidos (documentados)
+## 3. Estado final aceite
 
-### 4.1 Zoom (prioridade amanhã)
-
-- A partir da **v32**, alterações de zoom no modo leitura PDF geraram:
-  - Lentidão com vários ficheiros
-  - Tela preta (race `pdfRef` / efeitos React) — corrigido em commits posteriores, depois restore
-  - **404** em `/api/pdf/view/{id}` na **Vercel** ao dar zoom (armazenamento efémero + PDF.js pede ranges) — mitigação antiga: 1 página + debounce (revertido com v32)
-- **Decisão:** revisar zoom **incrementalmente**, testando PDF + Word + Excel em mobile e PC, sem repetir “renderizar todas as páginas” no PDF ao mudar zoom.
-
-### 4.2 Excel PC vs mobile
-
-- **Mobile:** área de leitura utilizável (scroll da página); renderização aprovada na **v38**.
-- **PC:** Fortune Sheet com ~2% de diferença vs Excel (Chrome; Edge por testar). Utilizador aceita manter.
-
-### 4.3 Histórico `.doc` / Mammoth
-
-- Na **v32** o Git **nunca** teve preview Word “completo” com Mammoth (sem imagens). A sensação de “como no Word” na v32 era layout simples ou ficheiros só com texto.
+| Formato | Mobile | PC / Vercel |
+|---------|--------|-------------|
+| **.pdf** | Modo leitura + editor; zoom CSS | Idem; API upload efémera (preferir modo local se 404 no view) |
+| **.docx** | docx-preview, páginas A4 normalizadas | Idem |
+| **.xlsx** | Fortune Sheet ~98% | Deformação leve **aceite** |
+| **.doc** | Sem preview — guardar como `.docx` | Conversão só com `run.bat` + Word/LibreOffice |
+| **PWA** | Android «Abrir com»; iOS Partilhar/Enviar | Instalar no Chrome/Edge |
 
 ---
 
-## 5. Configuração e rollback
+## 4. Problemas resolvidos na v41–v45
+
+| Problema | Solução |
+|----------|---------|
+| Zoom PDF lento / tela preta | Zoom só em CSS no PDF; não repinta todas as páginas |
+| docx-preview quebrado após zoom | Office com `applyOfficeTransform` no paint; efeitos separados |
+| Área branca enorme à esquerda | CSS `fit-content`; branco só nas secções A4 |
+| Páginas Word grandes/pequenas | `normalizeDocxPageSizes`; sem override `max-width` |
+| `crypto.randomUUID is not a function` | `newFileId.js` |
+
+---
+
+## 5. Limitações conhecidas (aceites)
+
+1. **`.doc`** — não há preview no browser; UI não promete abertura.
+2. **Excel PC** — layout ~2% diferente do Excel nativo.
+3. **Zoom PDF muito alto** — ampliação CSS (pode ficar menos nítida que 300% nativo).
+4. **Vercel** — storage efémero; PDF carregado pela API pode falhar em `/view` após tempo.
+5. **iOS** — PWA raramente aparece como leitor predefinido de `.docx`.
+
+---
+
+## 6. Configuração e rollback
 
 ### Badge
 
-- UI: **v39** (canto superior após deploy).
+UI mostra **v45** após deploy.
 
 ### Flags (`frontend/src/features/featureFlags.js`)
 
@@ -88,19 +80,19 @@ export const FEATURES = {
   readingToolbar: true,
   officeReader: true,
   defaultAppPrompt: true,
-  excelHtmlFallback: false,  // true = tabela HTML antiga (v37)
+  excelHtmlFallback: false,
 };
 ```
 
-### Rollback rápido
+### Rollback
 
 | Alvo | Ação |
 |------|------|
-| Só Excel HTML | `excelHtmlFallback: true` + deploy |
-| Leitor simples v27 | `readingToolbar: false`, `officeReader: false` + deploy |
-| Código v32 puro | `git checkout 85d8606` ou Promote deploy v32 na Vercel |
+| Excel HTML antigo | `excelHtmlFallback: true` + deploy |
+| Leitor v27 simples | `readingToolbar: false`, `officeReader: false` |
+| Código histórico | Promote deploy v32/v40 na Vercel ou `git revert` |
 
-### Comandos locais
+### Local
 
 ```powershell
 E:\Projetos\pieng_pdf_WEB\run.bat
@@ -109,41 +101,36 @@ E:\Projetos\pieng_pdf_WEB\run.bat
 
 ---
 
-## 6. Arquivos principais tocados nesta evolução
+## 7. Arquivos principais (v45)
 
 | Área | Ficheiros |
 |------|-----------|
-| Word | `frontend/src/officeReader.js`, `docx-preview` |
-| Excel | `frontend/src/ExcelFortuneViewer.jsx`, `excelFortune.js` |
-| Layout | `frontend/src/App.css`, `App.jsx` |
+| PDF / zoom | `App.jsx`, `pdfViewer.js` |
+| Word | `officeReader.js`, `App.css` |
+| Excel | `ExcelFortuneViewer.jsx`, `excelFortune.js` |
+| IDs | `newFileId.js`, `localPdf.js` |
+| PWA | `manifest.webmanifest`, `fileLaunch.js`, `defaultApp.js` |
+| Versão | `buildVersion.js` |
+| Flags | `features/featureFlags.js` |
 | .doc API | `src/converters/doc_to_docx.py`, `src/routes/pdf.py` |
-| Versão | `frontend/src/buildVersion.js` |
-| Documentação | `EVOLUCAO-LEITOR.md`, este relatório |
 
 ---
 
-## 7. Pendências para amanhã (não implementar hoje)
+## 8. Deploy
 
-1. **Zoom** — plano de testes e alterações mínimas:
-   - PDF na Vercel (blob local vs API; 1 página vs todas)
-   - Word/Excel: `zoom` CSS vs `scale`; reset ao trocar ficheiro
-   - Mobile: área útil do painel (se ainda ~50% em algum viewport)
-2. **Excel PC (opcional)** — protótipo “só desktop”: xlsx → PDF no servidor → PDF.js
-3. Validar **Edge** vs Chrome na deformação PC (só registo; sem obrigar mudança)
+```powershell
+cd E:\Projetos\pieng_pdf_WEB
+git add .
+git commit -m "descrição"
+git push origin main
+```
 
----
-
-## 8. Testes recomendados no próximo dia
-
-1. Confirmar badge **v39** no F12 (hash JS alinhado ao `index.html`).
-2. Mobile: `.docx` + `.xlsx` — modo leitura, zoom +/−, troca de aba Excel.
-3. PC: `.xlsx` — aceitar deformação ou testar Edge; **não** bloquear release por isso.
-4. PDF: abrir → modo leitura → zoom (anotar 404 na Vercel se upload foi pela API).
+Vercel: `installCommand` + `buildCommand` em `vercel.json` → `src/static`.
 
 ---
 
 ## 9. Conclusão
 
-A sessão fechou com **base v32 preservada na estratégia**, evolução **v33→v39** em passos pequenos, e **prioridade mobile** para Word/Excel. O sistema em produção está **utilizável** para o caso principal; zoom e refinamento Excel PC ficam **explicitamente adiados** para evitar nova regressão.
+O leitor está **utilizável em produção** na **v45** para o caso de negócio principal (mobile `.docx`/`.xlsx`, PDF, PWA Android). O código fica **congelado** neste desenho até nova decisão explícita de produto.
 
-**Relacionado:** [EVOLUCAO-LEITOR.md](./EVOLUCAO-LEITOR.md) · [LEITOR-OFICIAL.md](./LEITOR-OFICIAL.md)
+**Documentação relacionada:** [EVOLUCAO-LEITOR.md](./EVOLUCAO-LEITOR.md) · [LEITOR-OFICIAL.md](./LEITOR-OFICIAL.md) · [LEITOR-MOBILE-ARQUIVOS.md](./LEITOR-MOBILE-ARQUIVOS.md) · [Resumo.md](./Resumo.md)

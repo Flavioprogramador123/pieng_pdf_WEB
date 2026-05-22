@@ -1,6 +1,8 @@
 # Leitor oficial (PWA) — PC e celular
 
-O PIENG PDF Web pode ser **instalado** e, em navegadores compatíveis, abrir PDF/Word/Excel direto pelo sistema.
+**Produção:** v45 — https://pieng-pdf-web.vercel.app
+
+O PIENG PDF Web pode ser **instalado** e, em navegadores compatíveis, abrir **PDF**, **.docx** e **Excel** direto pelo sistema. **`.doc` antigo** não tem preview na web — use `.docx`.
 
 ## O que o app pergunta ao usuário
 

@@ -1,108 +1,132 @@
 # Evolução: leitor PDF / Word / Excel
 
-**Relatório de fecho da sessão:** [RELATORIO-FINALIZACAO.md](./RELATORIO-FINALIZACAO.md) (v39 em produção, pendências: zoom, Excel PC opcional).
+**Estado congelado (produção):** **v45** — commit `89c65c6` — https://pieng-pdf-web.vercel.app  
+**Relatório de fecho:** [RELATORIO-FINALIZACAO.md](./RELATORIO-FINALIZACAO.md)  
+**Não evoluir o leitor sem necessidade** — o sistema está aceite nesta versão.
 
-Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
+Base estável histórica: **v32** (`85d8606`). Evolução incremental v33→v45.
 
-## v40 — PWA abrir ficheiros no mobile (Android / iOS)
+---
 
-- Manifest: `application/octet-stream` + extensões `.pdf` `.doc` `.docx` `.xls` `.xlsx`
-- `launchQueue` registado antes do React (`fileLaunch.js`)
-- Guia [LEITOR-MOBILE-ARQUIVOS.md](./LEITOR-MOBILE-ARQUIVOS.md) + dicas na app
+## Estado atual (maio/2026) — v45
 
-## Estado atual (21/05/2026)
+| Área | Status |
+|------|--------|
+| **PDF** | Editor + modo leitura; zoom no PDF via **CSS** (sem re-render de todas as páginas) |
+| **.docx** | **docx-preview** — layout A4, imagens; `normalizeDocxPageSizes`; mensagem UI sem `.doc` |
+| **.xlsx / .xls** | **Fortune Sheet** no mobile (~98%); PC com deformação leve **aceite** |
+| **.doc** | **Sem preview** na web/mobile; converter para `.docx` ou `run.bat` no PC (API local) |
+| **PWA v40** | `file_handlers`, `fileLaunch.js`, guia [LEITOR-MOBILE-ARQUIVOS.md](./LEITOR-MOBILE-ARQUIVOS.md) |
+| **IDs locais** | `newFileId.js` — funciona em HTTP sem `crypto.randomUUID` |
+| **Deploy** | Vercel (`vercel.json`); push `main` → build automático |
 
-- **Produção:** v39 — mobile `.docx`/`.xlsx` ok; PC `.xlsx` com deformação leve aceite
-- **Amanhã:** revisar **zoom** com calma (evitar regressões pós-v32)
-- **Futuro PC:** Excel como PDF/imagem só no desktop (opcional)
+### Flags ativas (`featureFlags.js`)
+
+```javascript
+readingToolbar: true,
+officeReader: true,
+defaultAppPrompt: true,
+excelHtmlFallback: false,
+```
+
+### Opcional / adiado (não bloqueia)
+
+- Excel no PC → PDF no servidor (só desktop)
+- Nitidez máxima do zoom PDF (repintar só página visível)
+- Páginas Word paisagem + retrato no mesmo ficheiro (tamanhos podem diferir de propósito)
+
+---
+
+## v45 — Zoom PDF + docx-preview + estabilidade
+
+- Zoom PDF: escala fixa no canvas + `applyPdfReadTransform` (CSS)
+- Word: `normalizeDocxPageSizes`, quebras Word (`ignoreLastRenderedPageBreak: false`), CSS sem `max-width` nas secções
+- `newFileId` substitui `crypto.randomUUID`
+- Mensagem upload: «Word (.docx)» — não promete `.doc`
+- Build **v45** — deploy `89c65c6`
+
+## v44 — `newFileId`
+
+- Corrige `crypto.randomUUID is not a function` em HTTP/WebView antigo
+
+## v43 — Layout A4 Word
+
+- Contentor `fit-content`, branco só nas folhas, zoom em `.docx-wrapper`
+
+## v42 — docx-preview após zoom v41
+
+- Restaura `applyOfficeTransform` no paint; efeitos separados PDF vs Office
+
+## v41 — Zoom PDF seguro
+
+- Evita re-render de todas as páginas ao mudar zoom (regressão v32+)
+
+## v40 — PWA abrir ficheiros no mobile
+
+- Manifest: `application/octet-stream` + extensões
+- `launchQueue` em `fileLaunch.js` (antes do React)
 
 ## v39 — Ajuste fino Excel (Fortune Sheet)
 
-- Linhas/colunas com ~14% margem após import (evita texto cortado em células mescladas)
-- `devicePixelRatio` nativo; modo leitura sem destaque de seleção
+- Linhas/colunas ~14% margem; `devicePixelRatio` nativo
 
-## v38 — Excel com Fortune Sheet (modo leitura)
+## v38 — Excel Fortune Sheet
 
-- `.xlsx` / `.xls` com **Fortune Sheet** + importador com estilos (substitui tabela HTML)
-- Rollback: `excelHtmlFallback: true` em `featureFlags.js` (vista HTML v37)
-- Se o import falhar, volta automaticamente para HTML simplificado
+- Rollback: `excelHtmlFallback: true`
 
 ## v37 — Layout Word/Excel fiel
 
-- Zoom padrão **100%** (antes 140% deformava o documento)
-- Estilos de tabela Excel **não** sobrescrevem mais o Word (docx-preview)
-- Word: largura real do `.docx`, scroll horizontal, imagens sem encolher
-- Zoom com `zoom` CSS em vez de `scale()`; botão Largura também em Office
+- Zoom 100%; CSS Word/Excel separado
 
-## v36 — Conversão .doc no Windows
+## v36–v35 — `.doc` no PC
 
-- Procura LibreOffice em `C:\Program Files\LibreOffice\...`
-- Fallback **Word via PowerShell** (sem pywin32) se o Word estiver instalado
-- `run.bat` reinstala dependências locais (`pywin32`)
+- API `/convert-legacy-doc` (LibreOffice / Word Windows)
 
-## v35 — Abrir .doc (Word antigo)
+## v34 — docx-preview
 
-- Upload `.doc` tenta conversão na API (`/convert-legacy-doc`) com LibreOffice ou Word (Windows)
-- Se o ficheiro for ZIP disfarçado de `.doc`, abre direto como `.docx`
-- Na Vercel sem LibreOffice: guarde como `.docx` ou use `run.bat` no PC
+- Substitui Mammoth no **preview** (Mammoth só texto na aba Texto)
 
-## v34 — Word (.docx) com layout e imagens
+## v33 — MIME mobile
 
-- Leitor `.docx` passa a usar **docx-preview** (mantém logos, gráficos e páginas)
-- v32–v33 usavam só **Mammoth** → HTML sem imagens (nunca foi “Word completo” no Git)
-- Commit base v32: **`85d8606`** (`fix(v32): fundo branco Excel…`)
-
-## v33 — Upload Word (.doc vs .docx)
-
-- `.docx` e Excel: leitura no navegador (como v32)
-- `.doc` (Word antigo): mensagem clara — converter para `.docx` (Mammoth não lê binário `.doc`)
-- MIME `application/msword` / extensão vazia no telemóvel: deteção melhorada
+- `.doc` vs `.docx` — mensagens claras
 
 ## v31 — Leitor oficial (PWA)
 
-- Diálogo: tornar PIENG o leitor de PDF/Word/Excel
-- `manifest.webmanifest` + `file_handlers` + service worker
-- Ver **[LEITOR-OFICIAL.md](./LEITOR-OFICIAL.md)**
+- Ver [LEITOR-OFICIAL.md](./LEITOR-OFICIAL.md)
+
+---
 
 ## O que foi adicionado (v28+)
 
-- **Modo leitura** com barra de ferramentas: zoom +/−, 100%, largura (PDF), girar ↺↻, páginas ‹›
-- **Upload** de `.pdf`, `.docx`, `.xls`, `.xlsx` (Word/Excel só no navegador; `.doc` → converter para `.docx`)
-- Leitor **DOCX** (mammoth → HTML) e **planilha** (SheetJS → tabela HTML)
+- Modo leitura: zoom +/−, 100%, largura, girar, páginas (PDF)
+- Upload: `.pdf`, `.docx`, `.xls`, `.xlsx`
+- Leitor Word (**docx-preview**) e Excel (**Fortune Sheet**)
 
-## O que NÃO mudou (v27 preservado)
+## O que NÃO mudou
 
-- Editor de páginas PDF, merge, split, DOCX API + fallback
-- API `/api/pdf/*`, deploy Vercel, badge de versão
+- Editor PDF, merge, split, DOCX API, badge de versão, deploy Vercel
 
-## Reverter rápido (se algo quebrar)
+## Reverter rápido
 
-### Opção A — flags (sem git)
-
-Em `frontend/src/features/featureFlags.js`:
+### Flags (sem git)
 
 ```javascript
-export const FEATURES = {
-  readingToolbar: false,
-  officeReader: false,
-};
+readingToolbar: false,
+officeReader: false,
+// ou excelHtmlFallback: true
 ```
 
-Commit + deploy → volta ao leitor simples v27.
-
-### Opção B — git
+### Git / Vercel
 
 ```powershell
-cd E:\Projetos\pieng_pdf_WEB
 git log --oneline -5
-git revert HEAD
-git push
+# Promote deploy anterior na Vercel ou git revert
 ```
-
-Ou na Vercel: **Deployments** → deploy **v27** (commit `ba002e6` / `7e66a34`) → **Promote to Production**.
 
 ## Testar após deploy
 
-1. PDF → **Modo leitura** → zoom e girar
-2. Enviar `.docx` e `.xlsx` → abre no leitor
-3. **→ DOCX** em PDF ainda baixa arquivo (Network: `convert-docx` 200)
+1. Badge **v45** no canto da app
+2. `.docx` — folhas A4 uniformes, imagens
+3. `.xlsx` no telemóvel — Fortune Sheet + zoom
+4. PDF — modo leitura → zoom rápido, sem tela preta
+5. **→ DOCX** em PDF (API) — Network `convert-docx` 200

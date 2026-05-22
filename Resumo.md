@@ -2,7 +2,9 @@
 
 Documento de continuidade: contexto, o que foi feito, links, arquitetura e melhorias futuras.
 
-**Última atualização:** maio/2026
+**Última atualização:** maio/2026  
+**Versão em produção:** **v45** — https://pieng-pdf-web.vercel.app — commit `89c65c6`  
+**Estado:** leitor **congelado** na v45 (ver [EVOLUCAO-LEITOR.md](./EVOLUCAO-LEITOR.md) e [RELATORIO-FINALIZACAO.md](./RELATORIO-FINALIZACAO.md))
 
 ---
 
@@ -15,7 +17,7 @@ Substituir o uso limitado do **Adobe Acrobat** para tarefas comuns de PDF:
 - Editar páginas (rotacionar, excluir, mover, copiar, unir, dividir)
 - Exportar para **DOCX**
 - Modo leitura confortável
-- Hospedar na **Netlify** (interface) com API em nuvem (Railway/Render)
+- Hospedar na **Vercel** (site + API serverless) — produção atual
 
 Versão desktop de referência: **`E:\Projetos\pieng-pdf-studio`** (PyQt, v6.2.x — funcionalidades mais amplas).
 
@@ -28,31 +30,25 @@ Versão desktop de referência: **`E:\Projetos\pieng-pdf-studio`** (PyQt, v6.2.x
 | **Pasta local** | `E:\Projetos\pieng_pdf_WEB` |
 | **Repositório GitHub** | https://github.com/Flavioprogramador123/pieng_pdf_WEB |
 | **Clone** | `https://github.com/Flavioprogramador123/pieng_pdf_WEB.git` |
-| **Site Netlify** | https://pieng-pdf-web.netlify.app |
-| **Site Vercel (alternativa)** | Importar repo — ver [VERCEL.md](./VERCEL.md) |
-| **Time Netlify** | pieng |
+| **Site Vercel (produção)** | https://pieng-pdf-web.vercel.app |
+| **Site Netlify** | Legado — ver `obsoleto/` |
 | **Branch de deploy** | `main` |
+| **Versão UI** | v45 (`frontend/src/buildVersion.js`) |
 | **Projeto Studio (código-fonte lógica)** | `E:\Projetos\pieng-pdf-studio` |
 | **Logos originais** | `E:\Projetos\Prompt_ORC_pieng\.netlify\static\assets\logos` |
 
-### Deploy Netlify (configuração usada)
+### Deploy Vercel (produção)
 
 | Campo | Valor |
 |--------|--------|
-| Base directory | *(vazio — raiz do repo)* |
-| Build command | `cd frontend && npm install && npm run build` |
-| Publish directory | `src/static` |
-| Arquivo de config | `netlify.toml` (raiz) |
+| Config | `vercel.json` |
+| Build | `cd frontend && npm run build` |
+| Output | `src/static` |
+| API | `api/index.py` (serverless) |
 
-### API (pendente em produção)
+Guia: [VERCEL.md](./VERCEL.md) · [DEPLOY.md](./DEPLOY.md)
 
-O `netlify.toml` ainda contém placeholder:
-
-```toml
-to = "https://SUBSTITUA-SUA-API.up.railway.app/api/:splat"
-```
-
-**Enquanto isso não for trocado pela URL real do Railway/Render**, o site abre mas **upload e edição na nuvem falham**. Localmente funciona com Flask na porta 5001.
+**Nota:** uploads na Vercel são efémeros; PDF pesado na API pode falhar após tempo — modo local no browser continua disponível.
 
 ---
 
@@ -65,11 +61,10 @@ to = "https://SUBSTITUA-SUA-API.up.railway.app/api/:splat"
                             │
          ┌──────────────────┴──────────────────┐
          ▼                                      ▼
-┌─────────────────────┐              ┌─────────────────────┐
-│  Netlify            │   /api/*     │  Railway / Render   │
-│  React + PDF.js     │ ──────────►  │  Flask + pypdf      │
-│  src/static (build) │   proxy      │  pdf2docx, uploads  │
-└─────────────────────┘              └─────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  Vercel — React (src/static) + api/index.py (Flask)      │
+│  PDF.js · docx-preview · Fortune Sheet · PWA             │
+└─────────────────────────────────────────────────────────┘
          ▲
          │ git push main
 ┌─────────────────────┐
@@ -165,26 +160,22 @@ pieng_pdf_WEB/
 
 ---
 
-## 6. Funcionalidades atuais
+## 6. Funcionalidades atuais (v45)
 
 ### Interface (frontend)
 
 | Recurso | Status | Como usar |
 |---------|--------|-----------|
-| Upload PDF | ✅ | Sidebar → Enviar PDF |
-| Visualização página | ✅ | Miniaturas + canvas central |
-| Modo leitura | ✅ | Botão no topo |
-| Rotacionar | ✅ | Selecionar miniatura(s) → ↺ ↻ |
-| Excluir | ✅ | Duplo clique para multi-seleção → Excluir |
-| Mover ordem | ✅ | Página ativa → ↑ ↓ |
-| Copiar página | ✅ | 1 clique = ativa; duplo = multi → Copiar |
-| Salvar PDF editado | ✅ | **Salvar alterações** (chama `/api/pdf/apply`) |
-| Merge | ✅ | Checkbox nos arquivos → Unir selecionados |
-| Split | ✅ | Toolbar → Dividir |
-| Extrair texto | ✅ | Toolbar ou aba **Texto** |
-| Export DOCX | ✅ | **→ DOCX** (depende da API com pdf2docx) |
-| Download | ✅ | Link ↓ na lista de arquivos |
-| Logos / favicon | ✅ | Header, sidebar, empty state |
+| Upload PDF / Word / Excel | ✅ | Sidebar → Enviar (`.docx`, `.xlsx`; não `.doc` na UI) |
+| Visualização PDF | ✅ | Miniaturas + canvas central |
+| Modo leitura PDF | ✅ | Zoom CSS, rotação, páginas |
+| Leitor **.docx** | ✅ | docx-preview — abre direto em modo leitura |
+| Leitor **.xlsx** | ✅ | Fortune Sheet (mobile prioridade) |
+| Rotacionar / excluir / mover PDF | ✅ | Toolbar + miniaturas |
+| Salvar PDF editado | ✅ | **Salvar alterações** |
+| Merge / Split / DOCX / texto | ✅ | Toolbar e aba Texto |
+| PWA leitor oficial | ✅ | [LEITOR-OFICIAL.md](./LEITOR-OFICIAL.md) |
+| **.doc** preview web | ❌ | Converter para `.docx` ou `run.bat` local |
 
 ### API (backend) — endpoints
 
@@ -244,27 +235,20 @@ git commit -m "descrição da mudança"
 git push
 ```
 
-Netlify redeploya automaticamente ao push em `main`.
+Vercel redeploya automaticamente ao push em `main`.
 
 ---
 
-## 9. Pendências conhecidas
+## 9. Pendências / roadmap (não bloqueiam v45)
 
 | Item | Prioridade | Notas |
 |------|------------|--------|
-| Deploy API Railway/Render | **Alta** | Sem isso o Netlify só mostra a UI |
-| Atualizar URL em `netlify.toml` | **Alta** | Trocar `SUBSTITUA-SUA-API` |
-| Persistência de arquivos na API | Média | Uploads em pasta temp; reinício do servidor limpa |
-| Autenticação / login | Baixa | Não implementado |
-| OCR PDF escaneado | Baixa | Studio tem mais recursos; web não |
-| Compressão de PDF | Média | Existe no Studio, não na web |
-| Assinatura digital | Baixa | Studio em desenvolvimento |
-| Numeração de páginas | Média | Studio tem; portar para API |
-| Undo/redo | Média | Studio tem; web só edita em memória até Salvar |
-| Arrastar miniatura (drag-drop) | Média | Hoje só ↑↓ |
-| `.doc` (legado) | Baixa | Só DOCX na API |
-| Testes automatizados | Média | Não há suite de testes |
-| CI GitHub Actions | Baixa | build + lint opcional |
+| Excel PC → PDF no servidor | Baixa | Opcional; mobile já aceite |
+| Persistência Vercel | Média | Uploads efémeros na API |
+| Autenticação | Baixa | Não implementado |
+| OCR / compressão / assinatura | Baixa | Ver PIENG PDF Studio desktop |
+| Testes automatizados / CI | Média | Não há suite |
+| **Leitor v45** | — | **Congelado** — não alterar sem decisão de produto |
 
 ---
 
@@ -316,7 +300,10 @@ Netlify redeploya automaticamente ao push em `main`.
 | Arquivo | Conteúdo |
 |---------|----------|
 | `README.md` | Visão geral e uso rápido |
-| `DEPLOY.md` | GitHub, Netlify, Railway passo a passo |
+| `EVOLUCAO-LEITOR.md` | Versões v32–v45, flags, rollback |
+| `RELATORIO-FINALIZACAO.md` | Fecho da sessão leitor (v45) |
+| `LEITOR-OFICIAL.md` / `LEITOR-MOBILE-ARQUIVOS.md` | PWA |
+| `DEPLOY.md` / `VERCEL.md` | Publicar |
 | `Resumo.md` | Este documento (continuidade) |
 | `Guia de Instalação Local - PDF Manipulator.md` | Guia antigo (pré-reestruturação) |
 | `PDF Manipulator - Sistema de Manipulação de PDFs.md` | Doc antiga + deploy Manus |
@@ -328,4 +315,4 @@ Netlify redeploya automaticamente ao push em `main`.
 
 Projeto desenvolvido no ecossistema **PIENG** (Flavioprogramador123), alinhado ao **PIENG PDF Studio** desktop para relatórios, auditoria, contabilidade e uso administrativo.
 
-Para retomar o trabalho: leia este `Resumo.md`, confira pendência da **API em produção** e use `DEPLOY.md` para publicar.
+Para retomar o trabalho: leia [EVOLUCAO-LEITOR.md](./EVOLUCAO-LEITOR.md) (estado **v45 congelado**). Novas features do Studio desktop não devem quebrar o leitor web sem teste explícito.

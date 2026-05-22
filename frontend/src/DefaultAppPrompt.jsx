@@ -76,7 +76,7 @@ export default function DefaultAppPrompt({
           sem outras apps de propaganda?
         </p>
         <ul className="default-app-benefits">
-          <li>PDF, .doc, .docx, .xls e .xlsx</li>
+          <li>PDF, .docx, .xls e .xlsx</li>
           <li>Leitura com zoom e modo foco</li>
           <li>Instalado como app (PWA) — pode aparecer em «Abrir com»</li>
         </ul>

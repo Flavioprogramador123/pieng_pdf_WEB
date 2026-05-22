@@ -1,5 +1,7 @@
 # Abrir .pdf / .docx / .xls no telemóvel (Android e iPhone)
 
+**Versão:** v45 (produção Vercel). Leitor congelado — ver [EVOLUCAO-LEITOR.md](./EVOLUCAO-LEITOR.md).
+
 ## Por que o telefone diz «não há aplicação para abrir .docx»?
 
 1. **Só ter o site nos favoritos não basta** — tem de instalar o **PIENG Leitor** (PWA).
