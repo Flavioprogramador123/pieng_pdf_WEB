@@ -720,6 +720,23 @@ button.secondary {
   text-align: center;
 }
 
+.file-open-hint-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 1rem;
+  background: #1e3a5f;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: #dbeafe;
+}
+
+.file-open-hint-bar .secondary {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+}
+
 .default-app-backdrop {
   position: fixed;
   inset: 0;

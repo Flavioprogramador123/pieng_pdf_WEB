@@ -40,7 +40,16 @@ import {
 import DefaultAppPrompt from "./DefaultAppPrompt.jsx";
 const ExcelFortuneViewer = lazy(() => import("./ExcelFortuneViewer.jsx"));
 import ReadingToolbar, { READ_ZOOM_DEFAULT, nextZoom } from "./ReadingToolbar.jsx";
-import { isInstalledPwa } from "./defaultApp.js";
+import {
+  hasSeenFileOpenHint,
+  isAndroid,
+  isInstalledPwa,
+  isIos,
+  markFileOpenHintSeen,
+  markPwaInstalled,
+  noHandlerHint,
+} from "./defaultApp.js";
+import { setFileLaunchUploadHandler } from "./fileLaunch.js";
 import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
 
 /** Logo oficial (preto) — mesmo arquivo em header, sidebar e tela central */
@@ -110,7 +119,10 @@ function App() {
     if (!ev) return false;
     await ev.prompt();
     const { outcome } = await ev.userChoice;
-    if (outcome === "accepted") deferredInstallRef.current = null;
+    if (outcome === "accepted") {
+      deferredInstallRef.current = null;
+      markPwaInstalled();
+    }
     return outcome === "accepted";
   }, []);
 
@@ -447,14 +459,8 @@ function App() {
   onUploadRef.current = onUpload;
 
   useEffect(() => {
-    if (!("launchQueue" in window)) return;
-    window.launchQueue.setConsumer(async (launchParams) => {
-      if (!launchParams.files?.length) return;
-      const files = await Promise.all(
-        [...launchParams.files].map((handle) => handle.getFile())
-      );
-      await onUploadRef.current?.(files);
-    });
+    setFileLaunchUploadHandler((files) => onUploadRef.current?.(files));
+    return () => setFileLaunchUploadHandler(null);
   }, []);
 
   const saveChanges = async () => {
@@ -841,6 +847,32 @@ function App() {
           </span>
         </div>
       </header>
+
+      {FEATURES.defaultAppPrompt &&
+        isInstalledPwa() &&
+        (isAndroid() || isIos()) &&
+        !hasSeenFileOpenHint() && (
+          <div className="file-open-hint-bar" role="note">
+            <span>
+              Para abrir .docx/.pdf: use «Abrir com» → PIENG Leitor, ou «Enviar» dentro do app.
+            </span>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setShowInstallPrompt(true)}
+            >
+              Ver passos
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => markFileOpenHintSeen()}
+              aria-label="Fechar dica"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
       <div className="layout">
         <aside className="sidebar">

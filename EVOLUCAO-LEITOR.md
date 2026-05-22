@@ -4,6 +4,12 @@
 
 Base estável: **v32** (`85d8606`). Mudanças pequenas a partir daqui (v33, v34…).
 
+## v40 — PWA abrir ficheiros no mobile (Android / iOS)
+
+- Manifest: `application/octet-stream` + extensões `.pdf` `.doc` `.docx` `.xls` `.xlsx`
+- `launchQueue` registado antes do React (`fileLaunch.js`)
+- Guia [LEITOR-MOBILE-ARQUIVOS.md](./LEITOR-MOBILE-ARQUIVOS.md) + dicas na app
+
 ## Estado atual (21/05/2026)
 
 - **Produção:** v39 — mobile `.docx`/`.xlsx` ok; PC `.xlsx` com deformação leve aceite

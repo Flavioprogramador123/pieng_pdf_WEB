@@ -15,8 +15,8 @@ Também há o botão **Instalar leitor** no topo (some quando o app já está in
 | Plataforma | Instalar PWA | Abrir arquivo “Abrir com” | App padrão do sistema |
 |------------|--------------|---------------------------|------------------------|
 | Chrome/Edge desktop | Sim | Sim (com PWA + `file_handlers`) | Parcial (Windows pode listar após instalar) |
-| Android Chrome | Sim | Sim | Configurações → Apps → Abrir por padrão |
-| iOS Safari | Adicionar à Tela de Início | Limitado | Não define leitor padrão de PDF |
+| Android Chrome | Sim | Sim (v40+: MIME `octet-stream`) | Abrir com → PIENG → Sempre; ver [LEITOR-MOBILE-ARQUIVOS.md](./LEITOR-MOBILE-ARQUIVOS.md) |
+| iOS Safari | Adicionar à Tela de Início | Limitado | Partilhar ou Enviar dentro do app — não leitor padrão .docx |
 | Só aba do navegador | Não | Não | Não |
 
 Um site na Vercel **não substitui** o Adobe por registro nativo do Windows sem instalar o PWA pelo navegador.
