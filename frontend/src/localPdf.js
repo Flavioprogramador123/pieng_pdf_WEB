@@ -1,4 +1,5 @@
 import { PDFDocument, degrees } from "pdf-lib";
+import { newFileId } from "./newFileId.js";
 
 export function isPdfFile(file) {
   if (!file) return false;
@@ -17,7 +18,7 @@ export async function loadLocalDocument(file) {
     const p = pdfDoc.getPage(i);
     return { page: i + 1, rotation: p.getRotation().angle % 360 };
   });
-  const file_id = crypto.randomUUID();
+  const file_id = newFileId();
   return {
     file_id,
     filename: file.name || "documento.pdf",

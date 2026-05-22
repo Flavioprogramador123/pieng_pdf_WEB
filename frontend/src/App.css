@@ -493,10 +493,9 @@ button.secondary {
   min-height: 0;
 }
 
-/* Word: largura real do documento + scroll horizontal se preciso */
-.reading-host--docx,
-.reading-scroll:not(.reading-host--sheet) .read-office--docx {
-  align-items: flex-start;
+/* Word: contentor à largura da página A4; scroll horizontal só se a tabela for mais larga */
+.reading-scroll.reading-host--docx {
+  align-items: center;
 }
 
 .reading-scroll:not(.reading-host--sheet) {
@@ -504,30 +503,41 @@ button.secondary {
 }
 
 .read-office--docx {
-  width: max-content;
-  max-width: none;
-  min-width: min(100%, max-content);
+  width: fit-content;
+  max-width: 100%;
   display: block;
   flex-shrink: 0;
+  margin: 0 auto;
 }
 
 .read-office--docx .read-office-inner {
   padding: 0;
   overflow: visible;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
-  border-radius: 4px;
-  background: #fff;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  width: fit-content;
+  max-width: 100%;
 }
 
-/* docx-preview: não sobrescrever estilos inline do Word */
+/* docx-preview: encolher o wrapper ao tamanho das secções A4 */
 .read-office--docx .docx-wrapper {
-  background: #fff;
+  background: #fff !important;
   box-sizing: border-box;
+  width: fit-content !important;
+  max-width: 100%;
+  padding: 12px 12px 0 !important;
+  display: flex !important;
+  flex-flow: column !important;
+  align-items: center !important;
 }
 
-.read-office--docx .docx-wrapper section.docx {
-  width: auto !important;
-  max-width: none !important;
+/* Não forçar width/max-width — o docx-preview define A4 em style inline */
+.read-office--docx .docx-wrapper > section.docx {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .read-office--docx .docx-wrapper img {
@@ -663,11 +673,21 @@ button.secondary {
   color: var(--muted);
 }
 
+.read-pdf-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  transform-origin: top center;
+}
+
 .read-page {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
   background: #fff;
-  max-width: 900px;
-  width: 100%;
+  max-width: none;
+  width: auto;
+  height: auto;
+  display: block;
 }
 
 .text-tab {

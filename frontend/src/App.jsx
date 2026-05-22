@@ -50,7 +50,13 @@ import {
   noHandlerHint,
 } from "./defaultApp.js";
 import { setFileLaunchUploadHandler } from "./fileLaunch.js";
-import { loadPdf, renderPage, renderThumb } from "./pdfViewer.js";
+import {
+  applyPdfReadTransform,
+  loadPdf,
+  PDF_READ_RENDER_SCALE,
+  renderPage,
+  renderThumb,
+} from "./pdfViewer.js";
 
 /** Logo oficial (preto) — mesmo arquivo em header, sidebar e tela central */
 const LOGO_PIENG = "/assets/logos/logo-pieng-oficial.png";
@@ -73,6 +79,8 @@ function App() {
     () => sessionStorage.getItem("pieng-hide-api-banner") === "1"
   );
   const [readZoom, setReadZoom] = useState(READ_ZOOM_DEFAULT);
+  const readZoomRef = useRef(readZoom);
+  readZoomRef.current = readZoom;
   const [readRotation, setReadRotation] = useState(0);
   const [readPageIdx, setReadPageIdx] = useState(0);
 
@@ -182,7 +190,7 @@ function App() {
         mountOfficeHtml(host, office.previewHtml, activeDoc.kind);
       }
       applyOfficeTransform(host, {
-        zoom: readZoom,
+        zoom: readZoomRef.current,
         rotation: readRotation,
         kind: activeDoc.kind,
       });
@@ -193,20 +201,60 @@ function App() {
     if (!pdf) return;
     host.classList.remove("reading-host--sheet", "reading-host--docx");
     host.innerHTML = "";
+    const wrap = document.createElement("div");
+    wrap.className = "read-pdf-pages";
+    host.appendChild(wrap);
     const canvases = [];
     for (let i = 0; i < pages.length; i++) {
       const c = document.createElement("canvas");
       c.className = "read-page";
       c.dataset.pageIndex = String(i);
-      host.appendChild(c);
+      wrap.appendChild(c);
       canvases.push(c);
     }
     for (let i = 0; i < pages.length; i++) {
       const rot = ((pages[i].rotation || 0) + readRotation) % 360;
-      await renderPage(pdf, pages[i].page, canvases[i], rot, readZoom);
+      await renderPage(
+        pdf,
+        pages[i].page,
+        canvases[i],
+        rot,
+        PDF_READ_RENDER_SCALE
+      );
     }
     requestAnimationFrame(() => scrollToReadPage(readPageIdx));
-  }, [pages, readZoom, readRotation, readPageIdx, activeDoc, useExcelHtmlViewer]);
+  }, [pages, readRotation, readPageIdx, activeDoc, useExcelHtmlViewer]);
+
+  /** Zoom no PDF é só CSS; Word/Excel aplicam transform no paintReading ou no efeito abaixo. */
+  const applyPdfReadZoomOnly = useCallback(() => {
+    const host = readRef.current;
+    if (!host || !readingMode || !isPdfDoc) return;
+    applyPdfReadTransform(host, readZoom);
+  }, [readZoom, readingMode, isPdfDoc]);
+
+  const applyOfficeReadZoomOnly = useCallback(() => {
+    const host = readRef.current;
+    if (!host || !activeDoc || !readingMode) return;
+    if (activeDoc.kind === DOC_KIND.XLS && !useExcelHtmlViewer) return;
+    if (activeDoc.kind !== DOC_KIND.DOCX && activeDoc.kind !== DOC_KIND.XLS) return;
+    if (
+      activeDoc.kind === DOC_KIND.DOCX &&
+      !isDocxRenderedInHost(host, activeDoc.file_id)
+    ) {
+      return;
+    }
+    applyOfficeTransform(host, {
+      zoom: readZoom,
+      rotation: readRotation,
+      kind: activeDoc.kind,
+    });
+  }, [
+    activeDoc,
+    readZoom,
+    readRotation,
+    readingMode,
+    useExcelHtmlViewer,
+  ]);
 
   const scrollToReadPage = (idx) => {
     const host = readRef.current;
@@ -247,11 +295,23 @@ function App() {
   }, [activeDoc, pages, readPageIdx, readRotation]);
 
   const repaintViewer = useCallback(async () => {
-    if (!active || !pages.length || tab !== "editor") return;
+    if (!active || tab !== "editor") return;
+    if (!readingMode && !pages.length) return;
+    if (readingMode && isPdfDoc && !pages.length) return;
+    if (
+      readingMode &&
+      !isPdfDoc &&
+      activeDoc?.kind !== DOC_KIND.DOCX &&
+      activeDoc?.kind !== DOC_KIND.XLS
+    ) {
+      return;
+    }
     await new Promise((r) => requestAnimationFrame(r));
-    if (!pdfRef.current) await loadPdfDoc(active);
+    if (isPdfDoc && !pdfRef.current) await loadPdfDoc(active);
     if (readingMode) {
       await paintReading();
+      applyPdfReadZoomOnly();
+      applyOfficeReadZoomOnly();
     } else {
       await paintMain();
       await paintThumbs();
@@ -265,10 +325,22 @@ function App() {
     paintMain,
     paintThumbs,
     paintReading,
+    applyPdfReadZoomOnly,
+    applyOfficeReadZoomOnly,
+    isPdfDoc,
+    activeDoc,
   ]);
 
+  const canPaintReading =
+    readingMode &&
+    (isPdfDoc
+      ? pages.length > 0
+      : activeDoc?.kind === DOC_KIND.DOCX || activeDoc?.kind === DOC_KIND.XLS);
+
   useEffect(() => {
-    if (!active || !pages.length || tab !== "editor") return;
+    if (!active || tab !== "editor") return;
+    if (!readingMode && !pages.length) return;
+    if (readingMode && !canPaintReading) return;
     let cancelled = false;
     (async () => {
       try {
@@ -278,8 +350,13 @@ function App() {
         if (cancelled) return;
         await new Promise((r) => requestAnimationFrame(r));
         if (cancelled) return;
-        if (readingMode) await paintReading();
-        else if (isPdfDoc) {
+        if (readingMode) {
+          await paintReading();
+          if (!cancelled) {
+            applyPdfReadZoomOnly();
+            applyOfficeReadZoomOnly();
+          }
+        } else if (isPdfDoc && pages.length) {
           await paintMain();
           await paintThumbs();
         }
@@ -295,17 +372,36 @@ function App() {
     pages,
     currentIdx,
     readingMode,
-    readZoom,
     readRotation,
-    readPageIdx,
     tab,
     isPdfDoc,
+    canPaintReading,
     loadPdfDoc,
     paintMain,
     paintThumbs,
     paintReading,
+    applyPdfReadZoomOnly,
+    applyOfficeReadZoomOnly,
     useExcelHtmlViewer,
   ]);
+
+  useEffect(() => {
+    if (!readingMode || tab !== "editor") return;
+    applyPdfReadZoomOnly();
+    applyOfficeReadZoomOnly();
+  }, [
+    readZoom,
+    readRotation,
+    readingMode,
+    tab,
+    applyPdfReadZoomOnly,
+    applyOfficeReadZoomOnly,
+  ]);
+
+  useEffect(() => {
+    if (!readingMode || tab !== "editor" || !isPdfDoc) return;
+    requestAnimationFrame(() => scrollToReadPage(readPageIdx));
+  }, [readPageIdx, readingMode, tab, isPdfDoc]);
 
   const changeOfficeSheet = async (sheetName) => {
     const office = officeStoreRef.current.get(active);
@@ -402,7 +498,7 @@ function App() {
     if (!files.length) {
       setError(
         FEATURES.officeReader
-          ? "Selecione PDF, Word (.docx ou .doc) ou Excel (.xls/.xlsx)."
+          ? "Selecione PDF, Word (.docx) ou Excel (.xls/.xlsx)."
           : "Selecione um arquivo .pdf (no celular o tipo pode vir vazio — use arquivo .pdf)."
       );
       setLoading(false);

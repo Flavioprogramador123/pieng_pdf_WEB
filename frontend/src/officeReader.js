@@ -8,6 +8,7 @@ import {
   isLegacyWordDoc,
   isZipArchive,
 } from "./fileKinds.js";
+import { newFileId } from "./newFileId.js";
 
 const LEGACY_DOC_MSG =
   "Não foi possível abrir o .doc. Na Vercel: guarde como .docx no Word/LibreOffice. No PC: use run.bat com LibreOffice ou Word instalado.";
@@ -20,7 +21,8 @@ const DOCX_PREVIEW_OPTIONS = {
   ignoreHeight: false,
   ignoreFonts: false,
   breakPages: true,
-  ignoreLastRenderedPageBreak: true,
+  /** false = respeita quebras guardadas pelo Word (evita páginas com tamanhos mistos). */
+  ignoreLastRenderedPageBreak: false,
   experimental: false,
   useBase64URL: true,
   renderHeaders: true,
@@ -42,7 +44,7 @@ export async function loadOfficeDocument(file) {
       throw new Error(e.message || LEGACY_DOC_MSG);
     }
   }
-  const file_id = crypto.randomUUID();
+  const file_id = newFileId();
   let previewHtml = "";
   let sheetNames = [];
 
@@ -72,13 +74,60 @@ export async function loadOfficeDocument(file) {
   };
 }
 
+/** Alinha largura/altura das secções ao maior bloco A4 (docx-preview às vezes gera páginas menores). */
+export function normalizeDocxPageSizes(inner) {
+  const sections = [...inner.querySelectorAll(".docx-wrapper > section.docx")];
+  if (sections.length < 2) return;
+
+  let ref = sections[0];
+  let maxW = 0;
+  for (const sec of sections) {
+    const w = sec.getBoundingClientRect().width;
+    if (w >= maxW) {
+      maxW = w;
+      ref = sec;
+    }
+  }
+  const width = ref.style.width;
+  if (!width) return;
+
+  const minHeight = ref.style.minHeight;
+  const pad = {
+    left: ref.style.paddingLeft,
+    right: ref.style.paddingRight,
+    top: ref.style.paddingTop,
+    bottom: ref.style.paddingBottom,
+  };
+
+  for (const sec of sections) {
+    if (sec === ref) continue;
+    sec.style.width = width;
+    if (minHeight) sec.style.minHeight = minHeight;
+    if (pad.left) sec.style.paddingLeft = pad.left;
+    if (pad.right) sec.style.paddingRight = pad.right;
+    if (pad.top) sec.style.paddingTop = pad.top;
+    if (pad.bottom) sec.style.paddingBottom = pad.bottom;
+  }
+}
+
 export async function renderDocxInHost(host, bytes, fileId) {
   mountOfficeHtml(host, null, DOC_KIND.DOCX);
   const inner = host.querySelector(".read-office-inner");
   if (!inner) throw new Error("Painel de leitura indisponível.");
   inner.dataset.docxId = fileId;
   inner.innerHTML = "";
-  await renderAsync(bytes, inner, null, DOCX_PREVIEW_OPTIONS);
+  try {
+    await renderAsync(bytes, inner, null, DOCX_PREVIEW_OPTIONS);
+    await new Promise((r) =>
+      requestAnimationFrame(() => requestAnimationFrame(r))
+    );
+    normalizeDocxPageSizes(inner);
+  } catch (e) {
+    console.error("docx-preview:", e);
+    throw new Error(
+      e?.message || "Não foi possível pré-visualizar o documento Word."
+    );
+  }
 }
 
 export function isDocxRenderedInHost(host, fileId) {
@@ -112,10 +161,10 @@ export function applyOfficeTransform(hostEl, { zoom, rotation, kind }) {
   if (!hostEl) return;
   const target =
     kind === DOC_KIND.DOCX
-      ? hostEl.querySelector(".read-office--docx")
+      ? hostEl.querySelector(".docx-wrapper")
       : hostEl.querySelector(".read-office-sheet-scroll");
   if (!target) return;
-  const origin = kind === DOC_KIND.DOCX ? "top center" : "top left";
+  const origin = "top left";
   const rot = rotation ? `rotate(${rotation}deg)` : "";
   const supportsZoom =
     typeof CSS !== "undefined" && CSS.supports?.("zoom", "1") === true;
